@@ -1,0 +1,1579 @@
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+  Alert,
+  Dimensions,
+  ActivityIndicator,
+  Platform,
+  Image
+} from 'react-native';
+import { Ionicons, Feather } from '@expo/vector-icons';
+import { pickImageWithPreset, formatFileSize, getCompressionRatio } from '../utils/imageCompression';
+import ImageUploader from '../components/ImageUploader';
+
+const { width } = Dimensions.get('window');
+
+const SellerSignup = ({ navigation }) => {
+  const [activeStep, setActiveStep] = useState(1);
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [canResend, setCanResend] = useState(false);
+  const [timer, setTimer] = useState(60);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [attemptsRemaining, setAttemptsRemaining] = useState(5);
+  const [isAccountLocked, setIsAccountLocked] = useState(false);
+  const [lockoutTimer, setLockoutTimer] = useState(0);
+  const [otp, setOtp] = useState(['', '', '', '']);
+  const [showOtp, setShowOtp] = useState(false);
+  const [sellerData, setSellerData] = useState(null);
+  const [sellerId, setSellerId] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [signupButtonText, setSignupButtonText] = useState('Sign up');
+  const [showSpinner, setShowSpinner] = useState(false);
+
+  const inputRefs = useRef([]);
+
+  // Form data
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phoneNumber: '',
+    password: ''
+  });
+
+  const [errors, setErrors] = useState({});
+
+  // Form data for shop setup
+  const [shopData, setShopData] = useState({
+    shopName: '',
+    shopDescription: '',
+    businessType: '',
+    businessAddress: '',
+    city: '',
+    website: '',
+    shopLogo: null,
+    shopBanner: null,
+    businessLicense: '',
+    taxId: '',
+    businessHours: {
+      monday: { open: '09:00', close: '18:00', closed: false },
+      tuesday: { open: '09:00', close: '18:00', closed: false },
+      wednesday: { open: '09:00', close: '18:00', closed: false },
+      thursday: { open: '09:00', close: '18:00', closed: false },
+      friday: { open: '09:00', close: '18:00', closed: false },
+      saturday: { open: '09:00', close: '18:00', closed: false },
+      sunday: { open: '09:00', close: '18:00', closed: true }
+    }
+  });
+
+  const [shopErrors, setShopErrors] = useState({});
+
+  const businessTypes = [
+    'Electronics & Technology',
+    'Fashion & Clothing',
+    'Home & Garden',
+    'Health & Beauty',
+    'Sports & Outdoors',
+    'Books & Media',
+    'Automotive',
+    'Food & Beverages',
+    'Jewelry & Accessories',
+    'Arts & Crafts',
+    'Other'
+  ];
+
+  const countries = [
+    'Uganda', 'Kenya', 'Tanzania', 'Rwanda', 'Burundi', 'South Sudan',
+    'Nigeria', 'Ghana', 'South Africa', 'Egypt', 'Morocco', 'Ethiopia'
+  ];
+
+  const validateShopForm = () => {
+    const newErrors = {};
+
+    if (!shopData.shopName.trim()) {
+      newErrors.shopName = 'Shop name is required';
+    } else if (shopData.shopName.length < 3) {
+      newErrors.shopName = 'Shop name must be at least 3 characters';
+    }
+
+    if (!shopData.shopDescription.trim()) {
+      newErrors.shopDescription = 'Shop description is required';
+    } else if (shopData.shopDescription.length < 20) {
+      newErrors.shopDescription = 'Description must be at least 20 characters';
+    }
+
+    if (!shopData.businessType) {
+      newErrors.businessType = 'Business type is required';
+    }
+
+    if (!shopData.businessAddress.trim()) {
+      newErrors.businessAddress = 'Business address is required';
+    }
+
+    if (!shopData.city.trim()) {
+      newErrors.city = 'City is required';
+    }
+
+    if (shopData.website && !/^https?:\/\/.+\..+/.test(shopData.website)) {
+      newErrors.website = 'Please enter a valid website URL (include http:// or https://)';
+    }
+
+    setShopErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleShopSubmit = async () => {
+    if (!validateShopForm()) return;
+
+    // Here you would typically send shop data to backend
+    console.log('Shop data:', shopData);
+    Alert.alert('Success! 🏪', 'Shop setup completed successfully!', [
+      { text: 'Continue', onPress: () => setActiveStep(3) }
+    ]);
+  };
+
+  // Image upload handlers
+  const handleLogoUpload = async () => {
+    try {
+      const result = await pickImageWithPreset('logo');
+      if (result) {
+        setShopData({ ...shopData, shopLogo: result });
+        
+        // Show compression info
+        if (result.originalSize) {
+          const compressionRatio = getCompressionRatio(result.originalSize, result.fileSize || 0);
+          Alert.alert(
+            'Logo Uploaded! 📸',
+            `Original: ${formatFileSize(result.originalSize)}\nCompressed: ${formatFileSize(result.fileSize || 0)}\nSaved: ${compressionRatio}%`,
+            [{ text: 'Great!' }]
+          );
+        } else {
+          Alert.alert('Logo Uploaded! 📸', 'Your shop logo has been uploaded successfully.');
+        }
+      }
+    } catch (error) {
+      console.error('Logo upload error:', error);
+      Alert.alert('Upload Error', 'Failed to upload logo. Please try again.');
+    }
+  };
+
+  const handleBannerUpload = async () => {
+    try {
+      const result = await pickImageWithPreset('banner');
+      if (result) {
+        setShopData({ ...shopData, shopBanner: result });
+        
+        // Show compression info
+        if (result.originalSize) {
+          const compressionRatio = getCompressionRatio(result.originalSize, result.fileSize || 0);
+          Alert.alert(
+            'Banner Uploaded! 🖼️',
+            `Original: ${formatFileSize(result.originalSize)}\nCompressed: ${formatFileSize(result.fileSize || 0)}\nSaved: ${compressionRatio}%`,
+            [{ text: 'Awesome!' }]
+          );
+        } else {
+          Alert.alert('Banner Uploaded! 🖼️', 'Your shop banner has been uploaded successfully.');
+        }
+      }
+    } catch (error) {
+      console.error('Banner upload error:', error);
+      Alert.alert('Upload Error', 'Failed to upload banner. Please try again.');
+    }
+  };
+
+  const handleImageUpload = async (imageType) => {
+    try {
+      // For web, we'll use a simple file input approach
+      if (Platform.OS === 'web') {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = (event) => {
+          const file = event.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              const imageUri = e.target.result;
+              setShopData({
+                ...shopData,
+                [imageType === 'logo' ? 'shopLogo' : 'shopBanner']: imageUri
+              });
+              Alert.alert('Success! 📸', `${imageType === 'logo' ? 'Logo' : 'Banner'} uploaded successfully!`);
+            };
+            reader.readAsDataURL(file);
+          }
+        };
+        input.click();
+      } else {
+        // For mobile, we would use expo-image-picker
+        Alert.alert('Image Upload', 'Image upload functionality will be available in the mobile app version.');
+      }
+    } catch (error) {
+      console.error('Image upload error:', error);
+      Alert.alert('Upload Error', 'Failed to upload image. Please try again.');
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!formData.name.trim()) {
+      newErrors.name = 'Name is required';
+    }
+
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Invalid email address';
+    }
+
+    if (!formData.phoneNumber.trim()) {
+      newErrors.phoneNumber = 'Phone number is required';
+    } else if (!/^\+\d{10,15}$/.test(formData.phoneNumber)) {
+      newErrors.phoneNumber = 'Phone number must start with + and contain 10-15 digits';
+    }
+
+    // Strong password validation
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else {
+      const passwordErrors = [];
+      
+      if (formData.password.length < 8) {
+        passwordErrors.push('at least 8 characters');
+      }
+      
+      if (!/[a-z]/.test(formData.password)) {
+        passwordErrors.push('one lowercase letter');
+      }
+      
+      if (!/[A-Z]/.test(formData.password)) {
+        passwordErrors.push('one uppercase letter');
+      }
+      
+      if (!/\d/.test(formData.password)) {
+        passwordErrors.push('one number');
+      }
+      
+      if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(formData.password)) {
+        passwordErrors.push('one special character');
+      }
+      
+      // Check for common weak patterns
+      if (/^(.)\1+$/.test(formData.password)) {
+        passwordErrors.push('not all same characters');
+      }
+      
+      if (/^(012|123|234|345|456|567|678|789|890|abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz)/i.test(formData.password)) {
+        passwordErrors.push('not sequential characters');
+      }
+      
+      if (/^(password|123456|qwerty|admin|user|login)/i.test(formData.password)) {
+        passwordErrors.push('not a common weak password');
+      }
+      
+      if (passwordErrors.length > 0) {
+        newErrors.password = `Password must contain ${passwordErrors.join(', ')}`;
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSignup = async () => {
+    if (!validateForm()) return;
+
+    setLoading(true);
+    setShowSpinner(true);
+    setSignupButtonText('');
+
+    try {
+      const response = await fetch('https://easyshop-d00e.onrender.com/api/sellers/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setShowSpinner(false);
+        setSignupButtonText('Creating your account...');
+        
+        setTimeout(() => {
+          console.log('Setting sellerData:', formData);
+          setSellerData(formData);
+          setShowOtp(true);
+          setCanResend(false);
+          setAttemptsRemaining(5);
+          setIsAccountLocked(false);
+          startResendTimer(180); // 3 minutes cooldown
+          setLoading(false);
+          setSignupButtonText('Sign up');
+          Alert.alert('Success! 🎉', data.message);
+        }, 1500);
+      } else {
+        setShowSpinner(false);
+        setLoading(false);
+        setSignupButtonText('Sign up');
+        Alert.alert('Registration Failed', data.error || data.message);
+      }
+    } catch (error) {
+      setShowSpinner(false);
+      setLoading(false);
+      setSignupButtonText('Sign up');
+      console.error('Registration error:', error);
+      Alert.alert('Network Error', 'Please check your internet connection and try again.');
+    }
+  };
+
+  const startResendTimer = (cooldownTime = 180) => { // 3 minutes default
+    setResendCooldown(cooldownTime);
+    setCanResend(false);
+    
+    const interval = setInterval(() => {
+      setResendCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          setCanResend(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const startLockoutTimer = (lockoutTime) => {
+    setIsAccountLocked(true);
+    setLockoutTimer(lockoutTime);
+    
+    const interval = setInterval(() => {
+      setLockoutTimer((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          setIsAccountLocked(false);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const handleOtpChange = (index, value) => {
+    if (!/^[0-9]?$/.test(value)) return;
+
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
+
+    if (value && index < inputRefs.current.length - 1) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index, key) => {
+    if (key === 'Backspace' && !otp[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const verifyOtp = async () => {
+    if (otp.join('').length !== 4) {
+      Alert.alert('Error', 'Please enter complete OTP');
+      return;
+    }
+
+    if (!sellerData || !sellerData.email) {
+      Alert.alert('Error', 'Session expired. Please register again.');
+      return;
+    }
+
+    if (isAccountLocked) {
+      const minutes = Math.floor(lockoutTimer / 60);
+      const seconds = lockoutTimer % 60;
+      Alert.alert('Account Locked 🔒', `Your account is temporarily locked. Please wait ${minutes}m ${seconds}s before trying again.`);
+      return;
+    }
+
+    setLoading(true);
+    
+    const requestData = {
+      email: sellerData.email,
+      otp: otp.join('')
+    };
+    
+    console.log('Sending OTP verification request:', requestData);
+    
+    try {
+      const response = await fetch('https://easyshop-d00e.onrender.com/api/sellers/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
+      });
+
+      const data = await response.json();
+      console.log('OTP verification response:', data);
+
+      if (response.ok) {
+        setSellerId(data.seller.id);
+        setActiveStep(2);
+        setLoading(false);
+        Alert.alert('Success! 🎉', data.message);
+      } else {
+        setLoading(false);
+        
+        // Handle different error types
+        if (data.isWrongOtp) {
+          setAttemptsRemaining(data.attemptsRemaining);
+          Alert.alert(
+            'Wrong Verification Code ❌', 
+            `${data.error}\n\nPlease check your email and enter the correct 4-digit code.`,
+            [{ text: 'Try Again', style: 'default' }]
+          );
+        } else if (data.lockedUntil) {
+          // Account is locked
+          const lockoutSeconds = Math.ceil((data.lockedUntil - Date.now()) / 1000);
+          startLockoutTimer(lockoutSeconds);
+          Alert.alert(
+            'Account Locked 🔒', 
+            data.error,
+            [{ text: 'OK', style: 'default' }]
+          );
+        } else {
+          Alert.alert('Verification Failed', data.error || data.message);
+        }
+      }
+    } catch (error) {
+      setLoading(false);
+      console.error('OTP verification error:', error);
+      Alert.alert('Network Error', 'Please check your internet connection and try again.');
+    }
+  };
+
+  const resendOtp = async () => {
+    if (!sellerData) return;
+    
+    if (isAccountLocked) {
+      const minutes = Math.floor(lockoutTimer / 60);
+      const seconds = lockoutTimer % 60;
+      Alert.alert('Account Locked 🔒', `Your account is temporarily locked. Please wait ${minutes}m ${seconds}s before trying again.`);
+      return;
+    }
+    
+    if (!canResend) {
+      const minutes = Math.floor(resendCooldown / 60);
+      const seconds = resendCooldown % 60;
+      Alert.alert('Please Wait ⏰', `You can request a new code in ${minutes}m ${seconds}s`);
+      return;
+    }
+
+    try {
+      const response = await fetch('https://easyshop-d00e.onrender.com/api/sellers/resend-otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: sellerData.email
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setAttemptsRemaining(5); // Reset attempts on successful resend
+        startResendTimer(180); // 3 minutes cooldown
+        Alert.alert('New Code Sent! 📧', data.message);
+      } else {
+        if (data.cooldownUntil) {
+          const cooldownSeconds = Math.ceil((data.cooldownUntil - Date.now()) / 1000);
+          startResendTimer(cooldownSeconds);
+        }
+        Alert.alert('Resend Failed', data.error || data.message);
+      }
+    } catch (error) {
+      console.error('Resend OTP error:', error);
+      Alert.alert('Network Error', 'Please check your internet connection and try again.');
+    }
+  };
+
+  const renderSignupForm = () => (
+    <View style={styles.formContainer}>
+      <Text style={styles.formTitle}>Create Account</Text>
+
+      {/* Name */}
+      <Text style={styles.label}>Name</Text>
+      <TextInput
+        style={[styles.input, errors.name && styles.inputError]}
+        placeholder="eg. John Doe"
+        value={formData.name}
+        onChangeText={(text) => setFormData({ ...formData, name: text })}
+      />
+      {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
+
+      {/* Email */}
+      <Text style={styles.label}>Email</Text>
+      <TextInput
+        style={[styles.input, errors.email && styles.inputError]}
+        placeholder="eg. john@example.com"
+        value={formData.email}
+        onChangeText={(text) => setFormData({ ...formData, email: text })}
+        keyboardType="email-address"
+        autoCapitalize="none"
+      />
+      {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+
+      {/* Phone Number */}
+      <Text style={styles.label}>Phone Number (must have +)</Text>
+      <TextInput
+        style={[styles.input, errors.phoneNumber && styles.inputError]}
+        placeholder="e.g. +256 772 123456"
+        value={formData.phoneNumber}
+        onChangeText={(text) => setFormData({ ...formData, phoneNumber: text })}
+        keyboardType="phone-pad"
+      />
+      {errors.phoneNumber && <Text style={styles.errorText}>{errors.phoneNumber}</Text>}
+
+      {/* Password */}
+      <Text style={styles.label}>Password</Text>
+      <View style={styles.passwordContainer}>
+        <TextInput
+          style={[styles.passwordInput, errors.password && styles.inputError]}
+          placeholder="Create a strong password"
+          value={formData.password}
+          onChangeText={(text) => setFormData({ ...formData, password: text })}
+          secureTextEntry={!passwordVisible}
+        />
+        <TouchableOpacity
+          style={styles.eyeButton}
+          onPress={() => setPasswordVisible(!passwordVisible)}
+        >
+          <Ionicons
+            name={passwordVisible ? 'eye' : 'eye-off'}
+            size={20}
+            color="#666"
+          />
+        </TouchableOpacity>
+      </View>
+      
+      {/* Password Strength Indicator */}
+      {formData.password && (
+        <View style={styles.passwordStrength}>
+          <Text style={styles.passwordStrengthTitle}>Password Requirements:</Text>
+          <View style={styles.requirementsList}>
+            <View style={styles.requirement}>
+              <Text style={[styles.requirementIcon, formData.password.length >= 8 ? styles.valid : styles.invalid]}>
+                {formData.password.length >= 8 ? '✅' : '❌'}
+              </Text>
+              <Text style={[styles.requirementText, formData.password.length >= 8 ? styles.valid : styles.invalid]}>
+                At least 8 characters
+              </Text>
+            </View>
+            <View style={styles.requirement}>
+              <Text style={[styles.requirementIcon, /[a-z]/.test(formData.password) ? styles.valid : styles.invalid]}>
+                {/[a-z]/.test(formData.password) ? '✅' : '❌'}
+              </Text>
+              <Text style={[styles.requirementText, /[a-z]/.test(formData.password) ? styles.valid : styles.invalid]}>
+                One lowercase letter
+              </Text>
+            </View>
+            <View style={styles.requirement}>
+              <Text style={[styles.requirementIcon, /[A-Z]/.test(formData.password) ? styles.valid : styles.invalid]}>
+                {/[A-Z]/.test(formData.password) ? '✅' : '❌'}
+              </Text>
+              <Text style={[styles.requirementText, /[A-Z]/.test(formData.password) ? styles.valid : styles.invalid]}>
+                One uppercase letter
+              </Text>
+            </View>
+            <View style={styles.requirement}>
+              <Text style={[styles.requirementIcon, /\d/.test(formData.password) ? styles.valid : styles.invalid]}>
+                {/\d/.test(formData.password) ? '✅' : '❌'}
+              </Text>
+              <Text style={[styles.requirementText, /\d/.test(formData.password) ? styles.valid : styles.invalid]}>
+                One number
+              </Text>
+            </View>
+            <View style={styles.requirement}>
+              <Text style={[styles.requirementIcon, /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(formData.password) ? styles.valid : styles.invalid]}>
+                {/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(formData.password) ? '✅' : '❌'}
+              </Text>
+              <Text style={[styles.requirementText, /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(formData.password) ? styles.valid : styles.invalid]}>
+                One special character
+              </Text>
+            </View>
+          </View>
+        </View>
+      )}
+      
+      {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+
+      {/* Submit Button */}
+      <TouchableOpacity
+        style={[styles.submitButton, loading && styles.disabledButton]}
+        onPress={handleSignup}
+        disabled={loading}
+      >
+        {showSpinner ? (
+          <ActivityIndicator color="white" size="small" />
+        ) : (
+          <Text style={styles.submitButtonText}>
+            {signupButtonText || 'Sign up'}
+          </Text>
+        )}
+      </TouchableOpacity>
+
+      <Text style={styles.loginLink}>
+        Already have a seller account?{' '}
+        <Text style={styles.linkText} onPress={() => navigation.navigate('SellerLogin')}>
+          Login
+        </Text>
+      </Text>
+    </View>
+  );
+  const renderOtpForm = () => (
+    <View style={styles.formContainer}>
+      <Text style={styles.formTitle}>Enter OTP</Text>
+      <Text style={styles.otpSubtitle}>
+        We've sent a 4-digit code to {sellerData?.email}
+      </Text>
+
+      {/* Security Status */}
+      {isAccountLocked ? (
+        <View style={styles.lockoutWarning}>
+          <Text style={styles.lockoutIcon}>🔒</Text>
+          <Text style={styles.lockoutTitle}>Account Temporarily Locked</Text>
+          <Text style={styles.lockoutText}>
+            Too many failed attempts. Please wait {Math.floor(lockoutTimer / 60)}m {lockoutTimer % 60}s
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.securityStatus}>
+          <Text style={styles.securityText}>
+            {attemptsRemaining === 5 ? '🔐 Enter your verification code' : 
+             attemptsRemaining > 1 ? `⚠️ ${attemptsRemaining} attempts remaining` :
+             '🚨 Last attempt before lockout!'}
+          </Text>
+        </View>
+      )}
+
+      <View style={styles.otpContainer}>
+        {otp.map((digit, index) => (
+          <TextInput
+            key={index}
+            ref={(el) => {
+              if (el) inputRefs.current[index] = el;
+            }}
+            style={[
+              styles.otpInput,
+              isAccountLocked && styles.otpInputDisabled,
+              attemptsRemaining <= 2 && !isAccountLocked && styles.otpInputWarning
+            ]}
+            value={digit}
+            onChangeText={(value) => handleOtpChange(index, value)}
+            onKeyPress={({ nativeEvent }) => handleOtpKeyDown(index, nativeEvent.key)}
+            keyboardType="numeric"
+            maxLength={1}
+            textAlign="center"
+            editable={!isAccountLocked}
+          />
+        ))}
+      </View>
+
+      <TouchableOpacity
+        style={[
+          styles.submitButton, 
+          (loading || isAccountLocked) && styles.disabledButton
+        ]}
+        onPress={verifyOtp}
+        disabled={loading || isAccountLocked}
+      >
+        {loading ? (
+          <ActivityIndicator color="white" size="small" />
+        ) : (
+          <Text style={styles.submitButtonText}>
+            {isAccountLocked ? 'Account Locked' : 'Verify OTP'}
+          </Text>
+        )}
+      </TouchableOpacity>
+
+      {/* Resend Section */}
+      <View style={styles.resendSection}>
+        {isAccountLocked ? (
+          <Text style={styles.resendText}>
+            Account locked. Wait {Math.floor(lockoutTimer / 60)}m {lockoutTimer % 60}s
+          </Text>
+        ) : canResend ? (
+          <TouchableOpacity onPress={resendOtp}>
+            <Text style={styles.linkText}>Resend OTP</Text>
+          </TouchableOpacity>
+        ) : (
+          <Text style={styles.resendText}>
+            Resend available in {Math.floor(resendCooldown / 60)}m {resendCooldown % 60}s
+          </Text>
+        )}
+      </View>
+
+      {/* Help Text */}
+      <View style={styles.helpSection}>
+        <Text style={styles.helpText}>
+          💡 Tip: Check your spam folder if you don't see the email
+        </Text>
+        <Text style={styles.helpText}>
+          🔒 Your account will be locked for 30 minutes after 5 failed attempts
+        </Text>
+      </View>
+    </View>
+  );
+
+  const renderShopSetup = () => (
+    <View style={styles.formContainer}>
+      <Text style={styles.formTitle}>Setup Your Shop</Text>
+      <Text style={styles.subtitle}>Create your online store presence</Text>
+
+      {/* Two Column Layout for Large Screens */}
+      <View style={styles.shopFormLayout}>
+        {/* Left Column - Basic Information */}
+        <View style={styles.shopFormColumn}>
+          <Text style={styles.sectionTitle}>📋 Basic Information</Text>
+          
+          {/* Shop Name */}
+          <Text style={styles.label}>Shop Name *</Text>
+          <TextInput
+            style={[styles.input, shopErrors.shopName && styles.inputError]}
+            placeholder="e.g. Tech World Uganda"
+            value={shopData.shopName}
+            onChangeText={(text) => setShopData({ ...shopData, shopName: text })}
+          />
+          {shopErrors.shopName && <Text style={styles.errorText}>{shopErrors.shopName}</Text>}
+
+          {/* Shop Description */}
+          <Text style={styles.label}>Shop Description *</Text>
+          <TextInput
+            style={[styles.textArea, shopErrors.shopDescription && styles.inputError]}
+            placeholder="Describe your business, products, and what makes you unique..."
+            value={shopData.shopDescription}
+            onChangeText={(text) => setShopData({ ...shopData, shopDescription: text })}
+            multiline
+            numberOfLines={4}
+            textAlignVertical="top"
+          />
+          {shopErrors.shopDescription && <Text style={styles.errorText}>{shopErrors.shopDescription}</Text>}
+
+          {/* Business Type - Now a text input */}
+          <Text style={styles.label}>Business Type *</Text>
+          <TextInput
+            style={[styles.input, shopErrors.businessType && styles.inputError]}
+            placeholder="e.g. Electronics & Technology, Fashion & Clothing, etc."
+            value={shopData.businessType}
+            onChangeText={(text) => setShopData({ ...shopData, businessType: text })}
+          />
+          <Text style={styles.inputHint}>Enter your business category or type</Text>
+          {shopErrors.businessType && <Text style={styles.errorText}>{shopErrors.businessType}</Text>}
+
+          {/* Business Address */}
+          <Text style={styles.label}>Business Address *</Text>
+          <TextInput
+            style={[styles.input, shopErrors.businessAddress && styles.inputError]}
+            placeholder="e.g. Plot 123, Kampala Road"
+            value={shopData.businessAddress}
+            onChangeText={(text) => setShopData({ ...shopData, businessAddress: text })}
+          />
+          {shopErrors.businessAddress && <Text style={styles.errorText}>{shopErrors.businessAddress}</Text>}
+
+          {/* City */}
+          <Text style={styles.label}>City *</Text>
+          <TextInput
+            style={[styles.input, shopErrors.city && styles.inputError]}
+            placeholder="e.g. Kampala"
+            value={shopData.city}
+            onChangeText={(text) => setShopData({ ...shopData, city: text })}
+          />
+          {shopErrors.city && <Text style={styles.errorText}>{shopErrors.city}</Text>}
+
+          {/* Website (Optional) */}
+          <Text style={styles.label}>Website (Optional)</Text>
+          <TextInput
+            style={[styles.input, shopErrors.website && styles.inputError]}
+            placeholder="https://yourwebsite.com"
+            value={shopData.website}
+            onChangeText={(text) => setShopData({ ...shopData, website: text })}
+            keyboardType="url"
+            autoCapitalize="none"
+          />
+          {shopErrors.website && <Text style={styles.errorText}>{shopErrors.website}</Text>}
+        </View>
+
+        {/* Right Column - Additional Details & Images */}
+        <View style={styles.shopFormColumn}>
+          <Text style={styles.sectionTitle}>🏢 Business Details</Text>
+          
+          {/* Business License */}
+          <Text style={styles.label}>Business License Number (Optional)</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g. BL123456789"
+            value={shopData.businessLicense}
+            onChangeText={(text) => setShopData({ ...shopData, businessLicense: text })}
+          />
+
+          {/* Tax ID */}
+          <Text style={styles.label}>Tax ID / TIN (Optional)</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g. 1234567890"
+            value={shopData.taxId}
+            onChangeText={(text) => setShopData({ ...shopData, taxId: text })}
+            keyboardType="numeric"
+          />
+
+          {/* Image Upload Section */}
+          <View style={styles.imageUploadSection}>
+            <Text style={styles.sectionTitle}>🖼️ Shop Images</Text>
+            
+            <ImageUploader
+              preset="logo"
+              label="Shop Logo"
+              hint="Recommended: 400x400px, PNG/JPG (Auto-compressed)"
+              currentImage={shopData.shopLogo}
+              onImageSelected={(image) => setShopData({ ...shopData, shopLogo: image })}
+              showCompressionInfo={true}
+            />
+
+            <ImageUploader
+              preset="banner"
+              label="Shop Banner"
+              hint="Recommended: 1200x400px, PNG/JPG (Auto-compressed)"
+              currentImage={shopData.shopBanner}
+              onImageSelected={(image) => setShopData({ ...shopData, shopBanner: image })}
+              showCompressionInfo={true}
+            />
+          </View>
+
+          {/* Business Hours Section */}
+          <View style={styles.businessHoursSection}>
+            <Text style={styles.sectionTitle}>⏰ Business Hours</Text>
+            <Text style={styles.sectionSubtitle}>Set your operating hours for customers</Text>
+          
+          <View style={styles.businessHoursContainer}>
+            {Object.entries(shopData.businessHours).map(([day, hours]) => (
+              <View key={day} style={styles.dayRow}>
+                <View style={styles.dayInfo}>
+                  <Text style={styles.dayName}>{day.charAt(0).toUpperCase() + day.slice(1)}</Text>
+                  <TouchableOpacity
+                    style={[styles.closedToggle, hours.closed && styles.closedToggleActive]}
+                    onPress={() => {
+                      setShopData({
+                        ...shopData,
+                        businessHours: {
+                          ...shopData.businessHours,
+                          [day]: { ...hours, closed: !hours.closed }
+                        }
+                      });
+                    }}
+                  >
+                    <Text style={[styles.closedText, hours.closed && styles.closedActive]}>
+                      {hours.closed ? 'Closed' : 'Open'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+                
+                {!hours.closed && (
+                  <View style={styles.timeInputs}>
+                    <TouchableOpacity style={styles.timeButton}>
+                      <Text style={styles.timeText}>{hours.open}</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.timeSeparator}>to</Text>
+                    <TouchableOpacity style={styles.timeButton}>
+                      <Text style={styles.timeText}>{hours.close}</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            ))}
+          </View>
+        </View>
+      </View>
+
+      {/* Submit Button */}
+      <TouchableOpacity
+        style={[styles.submitButton, loading && styles.disabledButton]}
+        onPress={handleShopSubmit}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="white" size="small" />
+        ) : (
+          <Text style={styles.submitButtonText}>Complete Shop Setup</Text>
+        )}
+      </TouchableOpacity>
+
+      {/* Skip Option */}
+      <TouchableOpacity
+        style={styles.skipButton}
+        onPress={() => setActiveStep(3)}
+      >
+        <Text style={styles.skipButtonText}>Skip for now - Setup later</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderPaymentSetup = () => (
+    <View style={styles.formContainer}>
+      <Text style={styles.formTitle}>Connect Payment Method</Text>
+      <Text style={styles.subtitle}>
+        Connect your preferred payment gateway to receive payouts from your sales
+      </Text>
+
+      <View style={styles.paymentInfo}>
+        <Text style={styles.paymentInfoTitle}>💰 Supported Payout Methods</Text>
+        <Text style={styles.paymentInfoItem}>✅ Mobile Money - MTN, Airtel, M-Pesa</Text>
+        <Text style={styles.paymentInfoItem}>✅ Flutterwave - Cards, Bank Transfer</Text>
+        <Text style={styles.paymentInfoItem}>✅ PesaPal - M-Pesa, Airtel Money</Text>
+        <Text style={styles.paymentInfoItem}>✅ PayPal - International withdrawals</Text>
+        <Text style={styles.paymentInfoItem}>✅ Stripe - Cards, Bank Transfer</Text>
+      </View>
+
+      <View style={styles.paymentButtons}>
+        <TouchableOpacity style={[styles.paymentButton, styles.stripeButton]}>
+          <Text style={styles.paymentButtonText}>Connect Stripe</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.paymentButton, styles.flutterwaveButton]}>
+          <Text style={styles.paymentButtonText}>🌍 Connect Flutterwave</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.paymentButton, styles.pesapalButton]}>
+          <Text style={styles.paymentButtonText}>💳 Connect PesaPal</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.paymentButton, styles.paypalButton]}>
+          <Text style={styles.paymentButtonText}>💰 Connect PayPal</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.paymentButton, styles.mobileMoneyButton]}>
+          <Text style={styles.paymentButtonText}>📱 Connect Mobile Money</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.skipSection}>
+        <Text style={styles.skipText}>Not ready to connect now? No worries!</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('SellerLogin')}>
+          <Text style={styles.linkText}>Connect Later → Go to Login</Text>
+        </TouchableOpacity>
+        <Text style={styles.skipSubtext}>
+          You can connect your payment method anytime from your seller dashboard
+        </Text>
+      </View>
+    </View>
+  );
+
+  return (
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <View style={styles.content}>
+        <View style={styles.card}>
+          {activeStep === 1 && !showOtp && renderSignupForm()}
+          {activeStep === 1 && showOtp && renderOtpForm()}
+          {activeStep === 2 && renderShopSetup()}
+          {activeStep === 3 && renderPaymentSetup()}
+        </View>
+      </View>
+    </ScrollView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f8f9fa',
+  },
+  content: {
+    flex: 1,
+    paddingTop: width > 1200 ? 60 : width > 768 ? 50 : 40,
+    paddingHorizontal: width > 1200 ? 60 : width > 768 ? 40 : 20,
+    alignItems: 'center',
+    minHeight: '100%',
+    maxWidth: 1400,
+    alignSelf: 'center',
+    width: '100%',
+  },
+
+  // Card - Ultra Responsive
+  card: {
+    width: width > 1200 ? 600 : width > 768 ? 500 : width > 480 ? 400 : '100%',
+    maxWidth: '100%',
+    backgroundColor: 'white',
+    borderRadius: width > 768 ? 16 : 12,
+    padding: width > 1200 ? 40 : width > 768 ? 35 : 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: width > 768 ? 4 : 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: width > 768 ? 12 : 8,
+    elevation: width > 768 ? 8 : 5,
+  },
+  },
+  },
+
+  // Form - Ultra Responsive
+  formContainer: {
+    width: '100%',
+  },
+  formTitle: {
+    fontSize: width > 1200 ? 32 : width > 768 ? 28 : 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: width > 768 ? 12 : 8,
+    color: '#333',
+  },
+  subtitle: {
+    fontSize: width > 1200 ? 18 : width > 768 ? 16 : 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: width > 768 ? 25 : 20,
+    lineHeight: width > 768 ? 24 : 20,
+  },
+  label: {
+    fontSize: width > 1200 ? 18 : width > 768 ? 17 : 16,
+    fontWeight: '500',
+    color: '#333',
+    marginBottom: width > 768 ? 10 : 8,
+    marginTop: width > 768 ? 20 : 15,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: width > 768 ? 10 : 8,
+    paddingHorizontal: width > 768 ? 18 : 15,
+    paddingVertical: width > 1200 ? 16 : width > 768 ? 14 : 12,
+    fontSize: width > 1200 ? 18 : width > 768 ? 17 : 16,
+    backgroundColor: '#fff',
+    minHeight: width > 768 ? 50 : 44,
+  },
+  inputError: {
+    borderColor: '#e74c3c',
+  },
+  picker: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  pickerText: {
+    fontSize: width > 1200 ? 18 : width > 768 ? 17 : 16,
+    color: '#333',
+  },
+  placeholderText: {
+    fontSize: width > 1200 ? 18 : width > 768 ? 17 : 16,
+    color: '#999',
+  },
+  passwordContainer: {
+    position: 'relative',
+  },
+  passwordInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: width > 768 ? 10 : 8,
+    paddingHorizontal: width > 768 ? 18 : 15,
+    paddingVertical: width > 1200 ? 16 : width > 768 ? 14 : 12,
+    paddingRight: width > 768 ? 55 : 50,
+    fontSize: width > 1200 ? 18 : width > 768 ? 17 : 16,
+    backgroundColor: '#fff',
+    minHeight: width > 768 ? 50 : 44,
+  },
+  eyeButton: {
+    position: 'absolute',
+    right: width > 768 ? 18 : 15,
+    top: width > 1200 ? 16 : width > 768 ? 14 : 12,
+    padding: width > 768 ? 8 : 5,
+  },
+  errorText: {
+    color: '#e74c3c',
+    fontSize: width > 1200 ? 14 : width > 768 ? 13 : 12,
+    marginTop: width > 768 ? 8 : 5,
+    lineHeight: width > 768 ? 18 : 16,
+  },
+  submitButton: {
+    backgroundColor: '#3498db',
+    borderRadius: width > 768 ? 10 : 8,
+    paddingVertical: width > 1200 ? 18 : width > 768 ? 16 : 15,
+    alignItems: 'center',
+    marginTop: width > 768 ? 30 : 25,
+    minHeight: width > 768 ? 54 : 48,
+    justifyContent: 'center',
+  },
+  disabledButton: {
+    opacity: 0.7,
+  },
+  submitButtonText: {
+    color: 'white',
+    fontSize: width > 1200 ? 20 : width > 768 ? 18 : 16,
+    fontWeight: 'bold',
+  },
+  loginLink: {
+    textAlign: 'center',
+    marginTop: width > 768 ? 25 : 20,
+    fontSize: width > 1200 ? 16 : width > 768 ? 15 : 14,
+    color: '#666',
+    lineHeight: width > 768 ? 22 : 20,
+  },
+  linkText: {
+    color: '#3498db',
+    fontWeight: '500',
+  },
+
+  // OTP - Ultra Responsive
+  otpSubtitle: {
+    fontSize: width > 1200 ? 16 : width > 768 ? 15 : 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: width > 768 ? 25 : 20,
+    lineHeight: width > 768 ? 22 : 20,
+  },
+  
+  // Security Status
+  securityStatus: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: width > 768 ? 10 : 8,
+    padding: width > 768 ? 15 : 12,
+    marginBottom: width > 768 ? 20 : 15,
+    borderLeftWidth: 4,
+    borderLeftColor: '#17a2b8',
+  },
+  securityText: {
+    fontSize: width > 768 ? 14 : 13,
+    color: '#495057',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  
+  // Lockout Warning
+  lockoutWarning: {
+    backgroundColor: '#f8d7da',
+    borderRadius: width > 768 ? 10 : 8,
+    padding: width > 768 ? 20 : 15,
+    marginBottom: width > 768 ? 20 : 15,
+    borderLeftWidth: 4,
+    borderLeftColor: '#dc3545',
+    alignItems: 'center',
+  },
+  lockoutIcon: {
+    fontSize: width > 768 ? 32 : 28,
+    marginBottom: width > 768 ? 10 : 8,
+  },
+  lockoutTitle: {
+    fontSize: width > 768 ? 16 : 15,
+    fontWeight: 'bold',
+    color: '#721c24',
+    marginBottom: width > 768 ? 8 : 6,
+    textAlign: 'center',
+  },
+  lockoutText: {
+    fontSize: width > 768 ? 14 : 13,
+    color: '#721c24',
+    textAlign: 'center',
+    lineHeight: width > 768 ? 20 : 18,
+  },
+  
+  otpContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: width > 1200 ? 20 : width > 768 ? 18 : 15,
+    marginBottom: width > 768 ? 25 : 20,
+    flexWrap: 'wrap',
+  },
+  otpInput: {
+    width: width > 1200 ? 60 : width > 768 ? 55 : 50,
+    height: width > 1200 ? 60 : width > 768 ? 55 : 50,
+    borderWidth: 2,
+    borderColor: '#ddd',
+    borderRadius: width > 768 ? 10 : 8,
+    fontSize: width > 1200 ? 24 : width > 768 ? 22 : 18,
+    fontWeight: 'bold',
+    backgroundColor: '#fff',
+    textAlign: 'center',
+  },
+  otpInputDisabled: {
+    backgroundColor: '#f8f9fa',
+    borderColor: '#dee2e6',
+    color: '#6c757d',
+  },
+  otpInputWarning: {
+    borderColor: '#ffc107',
+    backgroundColor: '#fff3cd',
+  },
+  
+  // Resend Section
+  resendSection: {
+    alignItems: 'center',
+    marginTop: width > 768 ? 20 : 15,
+    marginBottom: width > 768 ? 15 : 10,
+  },
+  resendText: {
+    fontSize: width > 768 ? 14 : 13,
+    color: '#666',
+    textAlign: 'center',
+  },
+  
+  // Help Section
+  helpSection: {
+    backgroundColor: '#e7f3ff',
+    borderRadius: width > 768 ? 10 : 8,
+    padding: width > 768 ? 15 : 12,
+    marginTop: width > 768 ? 20 : 15,
+    borderLeftWidth: 4,
+    borderLeftColor: '#007bff',
+  },
+  helpText: {
+    fontSize: width > 768 ? 12 : 11,
+    color: '#004085',
+    textAlign: 'center',
+    marginBottom: width > 768 ? 5 : 3,
+    lineHeight: width > 768 ? 16 : 14,
+  },
+
+  // Coming Soon - Ultra Responsive
+  comingSoon: {
+    alignItems: 'center',
+    paddingVertical: width > 768 ? 50 : 40,
+  },
+  comingSoonText: {
+    fontSize: width > 1200 ? 24 : width > 768 ? 22 : 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: width > 768 ? 20 : 15,
+    marginBottom: width > 768 ? 15 : 10,
+    textAlign: 'center',
+  },
+  comingSoonSubtext: {
+    fontSize: width > 1200 ? 16 : width > 768 ? 15 : 14,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: width > 768 ? 24 : 20,
+    maxWidth: width > 768 ? 400 : 300,
+  },
+
+  // Payment Setup - Ultra Responsive
+  paymentInfo: {
+    backgroundColor: '#e3f2fd',
+    borderRadius: width > 768 ? 12 : 8,
+    padding: width > 1200 ? 20 : width > 768 ? 18 : 15,
+    marginBottom: width > 768 ? 25 : 20,
+  },
+  paymentInfoTitle: {
+    fontSize: width > 1200 ? 18 : width > 768 ? 17 : 16,
+    fontWeight: 'bold',
+    color: '#1976d2',
+    marginBottom: width > 768 ? 12 : 10,
+  },
+  paymentInfoItem: {
+    fontSize: width > 1200 ? 16 : width > 768 ? 15 : 14,
+    color: '#1976d2',
+    marginBottom: width > 768 ? 8 : 5,
+    lineHeight: width > 768 ? 22 : 20,
+  },
+  paymentButtons: {
+    gap: width > 768 ? 15 : 12,
+  },
+  paymentButton: {
+    paddingVertical: width > 1200 ? 18 : width > 768 ? 16 : 15,
+    borderRadius: width > 768 ? 10 : 8,
+    alignItems: 'center',
+    minHeight: width > 768 ? 54 : 48,
+    justifyContent: 'center',
+  },
+  paymentButtonText: {
+    color: 'white',
+    fontSize: width > 1200 ? 18 : width > 768 ? 17 : 16,
+    fontWeight: 'bold',
+  },
+  stripeButton: {
+    backgroundColor: '#635BFF',
+  },
+  flutterwaveButton: {
+    backgroundColor: '#F5A623',
+  },
+  pesapalButton: {
+    backgroundColor: '#00A651',
+  },
+  paypalButton: {
+    backgroundColor: '#003087',
+  },
+  mobileMoneyButton: {
+    backgroundColor: '#FF6B00',
+  },
+  skipSection: {
+    marginTop: width > 768 ? 30 : 25,
+    paddingTop: width > 768 ? 25 : 20,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    alignItems: 'center',
+  },
+  skipText: {
+    fontSize: width > 1200 ? 16 : width > 768 ? 15 : 14,
+    color: '#666',
+    marginBottom: width > 768 ? 10 : 8,
+    textAlign: 'center',
+  },
+  skipSubtext: {
+    fontSize: width > 1200 ? 14 : width > 768 ? 13 : 12,
+    color: '#999',
+    textAlign: 'center',
+    marginTop: width > 768 ? 10 : 8,
+    lineHeight: width > 768 ? 18 : 16,
+    maxWidth: width > 768 ? 300 : 250,
+  },
+
+  // Password Strength Indicator
+  passwordStrength: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: width > 768 ? 10 : 8,
+    padding: width > 768 ? 15 : 12,
+    marginTop: width > 768 ? 10 : 8,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  passwordStrengthTitle: {
+    fontSize: width > 768 ? 14 : 12,
+    fontWeight: '600',
+    color: '#495057',
+    marginBottom: width > 768 ? 10 : 8,
+  },
+  requirementsList: {
+    gap: width > 768 ? 6 : 4,
+  },
+  requirement: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: width > 768 ? 8 : 6,
+  },
+  requirementIcon: {
+    fontSize: width > 768 ? 14 : 12,
+  },
+  requirementText: {
+    fontSize: width > 768 ? 13 : 11,
+    flex: 1,
+  },
+  valid: {
+    color: '#28a745',
+  },
+  invalid: {
+    color: '#dc3545',
+  },
+
+  // Shop Setup Form Styles
+  shopFormLayout: {
+    flexDirection: width > 768 ? 'row' : 'column',
+    gap: width > 768 ? 30 : 0,
+    marginBottom: width > 768 ? 30 : 20,
+  },
+  shopFormColumn: {
+    flex: width > 768 ? 1 : 0,
+    marginBottom: width > 768 ? 0 : 20,
+  },
+  textArea: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: width > 768 ? 10 : 8,
+    paddingHorizontal: width > 768 ? 18 : 15,
+    paddingVertical: width > 1200 ? 16 : width > 768 ? 14 : 12,
+    fontSize: width > 1200 ? 18 : width > 768 ? 17 : 16,
+    backgroundColor: '#fff',
+    minHeight: width > 768 ? 100 : 80,
+    textAlignVertical: 'top',
+  },
+  inputHint: {
+    fontSize: width > 1200 ? 12 : width > 768 ? 11 : 10,
+    color: '#999',
+    marginTop: width > 768 ? 5 : 3,
+    marginBottom: width > 768 ? 15 : 10,
+    fontStyle: 'italic',
+  },
+
+  // Image Upload Section
+  imageUploadSection: {
+    marginTop: width > 768 ? 25 : 20,
+    marginBottom: width > 768 ? 20 : 15,
+  },
+  sectionTitle: {
+    fontSize: width > 1200 ? 20 : width > 768 ? 18 : 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: width > 768 ? 15 : 12,
+  },
+  sectionSubtitle: {
+    fontSize: width > 1200 ? 14 : width > 768 ? 13 : 12,
+    color: '#666',
+    marginBottom: width > 768 ? 15 : 12,
+    lineHeight: width > 768 ? 18 : 16,
+  },
+  imageUploadContainer: {
+    marginBottom: width > 768 ? 20 : 15,
+  },
+  imageLabel: {
+    fontSize: width > 1200 ? 16 : width > 768 ? 15 : 14,
+    fontWeight: '500',
+    color: '#333',
+    marginBottom: width > 768 ? 8 : 6,
+  },
+  imageUploadButton: {
+    borderWidth: 2,
+    borderColor: '#3498db',
+    borderStyle: 'dashed',
+    borderRadius: width > 768 ? 10 : 8,
+    paddingVertical: width > 768 ? 20 : 15,
+    paddingHorizontal: width > 768 ? 15 : 12,
+    alignItems: 'center',
+    backgroundColor: '#f8f9ff',
+    marginBottom: width > 768 ? 8 : 6,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  imageUploadText: {
+    fontSize: width > 1200 ? 16 : width > 768 ? 15 : 14,
+    color: '#3498db',
+    fontWeight: '500',
+  },
+  imageHint: {
+    fontSize: width > 1200 ? 12 : width > 768 ? 11 : 10,
+    color: '#999',
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+
+  // Image Preview Styles
+  imagePreview: {
+    position: 'relative',
+    marginBottom: width > 768 ? 15 : 12,
+    alignItems: 'center',
+  },
+  logoPreview: {
+    width: width > 768 ? 120 : 100,
+    height: width > 768 ? 120 : 100,
+    borderRadius: width > 768 ? 12 : 10,
+    backgroundColor: '#f8f9fa',
+  },
+  bannerPreview: {
+    width: '100%',
+    height: width > 768 ? 120 : 100,
+    borderRadius: width > 768 ? 12 : 10,
+    backgroundColor: '#f8f9fa',
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: -10,
+    right: width > 768 ? -10 : -5,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  imageInfo: {
+    fontSize: width > 768 ? 12 : 11,
+    color: '#27ae60',
+    textAlign: 'center',
+    marginTop: width > 768 ? 8 : 6,
+    fontWeight: '500',
+  },
+
+  // Business Hours Section
+  businessHoursSection: {
+    marginTop: width > 768 ? 25 : 20,
+    marginBottom: width > 768 ? 20 : 15,
+    backgroundColor: '#f8f9fa',
+    borderRadius: width > 768 ? 12 : 10,
+    padding: width > 768 ? 20 : 15,
+  },
+  businessHoursContainer: {
+    gap: width > 768 ? 12 : 10,
+  },
+  dayRow: {
+    marginBottom: width > 768 ? 15 : 12,
+    paddingBottom: width > 768 ? 15 : 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e9ecef',
+  },
+  dayInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: width > 768 ? 10 : 8,
+  },
+  dayName: {
+    fontSize: width > 1200 ? 16 : width > 768 ? 15 : 14,
+    fontWeight: '600',
+    color: '#333',
+    textTransform: 'capitalize',
+    minWidth: width > 768 ? 100 : 80,
+  },
+  closedToggle: {
+    paddingHorizontal: width > 768 ? 12 : 10,
+    paddingVertical: width > 768 ? 6 : 5,
+    borderRadius: width > 768 ? 6 : 5,
+    backgroundColor: '#e9ecef',
+    borderWidth: 1,
+    borderColor: '#28a745',
+  },
+  closedToggleActive: {
+    backgroundColor: '#f8d7da',
+    borderColor: '#dc3545',
+  },
+  closedText: {
+    fontSize: width > 1200 ? 14 : width > 768 ? 13 : 12,
+    color: '#28a745',
+    fontWeight: '500',
+  },
+  closedActive: {
+    color: '#dc3545',
+  },
+  timeInputs: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: width > 768 ? 15 : 12,
+  },
+  timeButton: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: width > 768 ? 8 : 6,
+    paddingHorizontal: width > 768 ? 15 : 12,
+    paddingVertical: width > 768 ? 10 : 8,
+    minWidth: width > 768 ? 80 : 70,
+    alignItems: 'center',
+  },
+  timeText: {
+    fontSize: width > 1200 ? 14 : width > 768 ? 13 : 12,
+    color: '#333',
+    fontWeight: '500',
+  },
+  timeSeparator: {
+    fontSize: width > 1200 ? 14 : width > 768 ? 13 : 12,
+    color: '#666',
+    fontWeight: '500',
+  },
+
+  // Skip Button
+  skipButton: {
+    marginTop: width > 768 ? 15 : 12,
+    paddingVertical: width > 768 ? 12 : 10,
+    alignItems: 'center',
+  },
+  skipButtonText: {
+    fontSize: width > 1200 ? 16 : width > 768 ? 15 : 14,
+    color: '#666',
+    textDecorationLine: 'underline',
+  },
+});
+
+export default SellerSignup;

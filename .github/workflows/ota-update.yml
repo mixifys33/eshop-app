@@ -1,0 +1,45 @@
+name: EAS OTA Update
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "screens/**"
+      - "components/**"
+      - "hooks/**"
+      - "services/**"
+      - "context/**"
+      - "constants/**"
+      - "utils/**"
+      - "assets/**"
+      - "App.js"
+      - "config.js"
+      - "app.json"
+
+jobs:
+  update:
+    name: Push OTA Update
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Publish OTA update to production channel
+        run: eas update --channel production --message "Auto update from GitHub - ${{ github.sha }}" --non-interactive

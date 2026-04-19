@@ -1,0 +1,44 @@
+# EAS Build Ignore File
+# Reduce upload size by excluding unnecessary files
+
+# Node modules (will be installed on EAS servers)
+node_modules/
+
+# Build outputs
+.expo/
+dist/
+build/
+android/
+ios/
+
+# Development files
+.git/
+.github/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+__tests__/
+*.test.js
+*.spec.js
+
+# Documentation
+*.md
+docs/
+
+# Backup files
+*.backup
+*.bak

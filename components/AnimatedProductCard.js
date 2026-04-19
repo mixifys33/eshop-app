@@ -13,11 +13,30 @@ const SHIMMER_COLORS = ['#e8f4fd', '#fef9e7', '#eafaf1', '#fdf2f8', '#f0f3ff'];
 
 // Auto-cycles through product images with a true crossfade (no white flash)
 // intervalMs controls the switch speed (default 2800ms)
+
+// Returns true if a URL is a video (YouTube, mp4, etc.) — should be excluded from image carousel
+const isVideoUrl = (url) => {
+  if (!url) return false;
+  const lower = url.toLowerCase();
+  return (
+    lower.includes('youtube.com') ||
+    lower.includes('youtu.be') ||
+    lower.includes('vimeo.com') ||
+    lower.endsWith('.mp4') ||
+    lower.endsWith('.mov') ||
+    lower.endsWith('.avi') ||
+    lower.endsWith('.webm') ||
+    lower.includes('/video/') ||
+    lower.includes('video_url')
+  );
+};
+
 export const AutoImage = ({ images, style, intervalMs = 2800 }) => {
   const uris = React.useMemo(() => {
     const list = (images || [])
       .map(img => img?.url || img?.uri || (typeof img === 'string' ? img : null))
-      .filter(Boolean);
+      .filter(Boolean)
+      .filter(url => !isVideoUrl(url)); // exclude video URLs from image carousel
     return list.length > 0
       ? list
       : ['https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400'];

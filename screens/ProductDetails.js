@@ -355,48 +355,8 @@ const ProductDetails = ({ navigation, route }) => {
     return wishlistItems.some(item => item.id === productId);
   };
 
-  // Auto-scroll functionality
-  const startAutoScroll = () => {
-    // Clear any existing interval
-    stopAutoScroll();
-    
-    // Count total media items (images + video)
-    let mediaCount = 0;
-    if (product.videoUrl && product.videoUrl.trim() !== '') {
-      mediaCount++;
-    }
-    if (product.images && Array.isArray(product.images)) {
-      mediaCount += product.images.filter(img => {
-        const url = img.url || img.uri || img.imagekitUrl || img;
-        return url && typeof url === 'string' && url.trim() !== '';
-      }).length;
-    } else if (product.image) {
-      mediaCount++;
-    }
-    
-    // Only auto-scroll if there are multiple media items
-    if (mediaCount > 1) {
-      autoScrollInterval.current = setInterval(() => {
-        setSelectedImageIndex((prevIndex) => {
-          const nextIndex = (prevIndex + 1) % mediaCount;
-          
-          // Scroll to next image
-          if (flatListRef.current) {
-            try {
-              flatListRef.current.scrollToIndex({ 
-                index: nextIndex, 
-                animated: true 
-              });
-            } catch (error) {
-              console.log('Auto-scroll error:', error);
-            }
-          }
-          
-          return nextIndex;
-        });
-      }, 3000); // Change image every 3 seconds
-    }
-  };
+  // Auto-scroll removed — manual scroll only
+  const startAutoScroll = () => {}; // no-op, kept so existing call sites don't break
 
   const stopAutoScroll = () => {
     if (autoScrollInterval.current) {
@@ -405,16 +365,10 @@ const ProductDetails = ({ navigation, route }) => {
     }
   };
 
-  // Stop auto-scroll when user manually interacts
+  // Update selected index when user manually scrolls
   const handleManualScroll = (event) => {
-    stopAutoScroll();
     const index = Math.round(event.nativeEvent.contentOffset.x / width);
     setSelectedImageIndex(index);
-    
-    // Restart auto-scroll after 5 seconds of inactivity
-    setTimeout(() => {
-      startAutoScroll();
-    }, 5000);
   };
 
   const loadProductData = useCallback(async () => {
@@ -1628,8 +1582,6 @@ Backed by our quality guarantee and excellent customer service, you can purchase
     const handleModalClose = () => {
       console.log('Closing modal');
       setShowImageModal(false);
-      // Resume auto-scroll after closing modal
-      setTimeout(() => startAutoScroll(), 500);
     };
 
     console.log('renderImageModal - showImageModal:', showImageModal, 'imageUrls:', imageUrls.length);

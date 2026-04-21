@@ -9,6 +9,7 @@ import * as ImagePicker from 'expo-image-picker';
 import Toast from 'react-native-toast-message';
 
 import API from '../config';
+import { generateOrderRef } from '../utils/generateOrderRef';
 
 const METHODS = {
   mtn:    { label: 'MTN Mobile Money', color: '#f39c12', bg: '#FFF8EC', icon: 'phone-portrait-outline' },
@@ -22,6 +23,9 @@ export default function PaymentScreen({ navigation, route }) {
   const [placing, setPlacing] = useState(false);
   const [chosenPayment, setChosenPayment] = useState({ ...selectedPayment });
   const [expandedSeller, setExpandedSeller] = useState(null);
+
+  // Generate a short unique reference once per payment session
+  const [orderRef] = useState(() => generateOrderRef());
 
   // Proof images: [{ uri, uploading, url, fileId }]
   const [proofImages, setProofImages] = useState([]);
@@ -161,7 +165,7 @@ export default function PaymentScreen({ navigation, route }) {
           expectedAmount,
           expectedRecipientName: expectedName,
           expectedPhone,
-          productNames: allProductNames,
+          productNames: orderRef,
           paymentMethod: method,
         }),
       });
@@ -240,6 +244,7 @@ export default function PaymentScreen({ navigation, route }) {
           buyerInfo,
           proofImages: proofPayload,
           paymentStatus: 'submitted',
+          orderRef,
         };
         console.log('Posting order for seller:', sid, 'method:', finalBody.paymentMethod);
         try {
@@ -358,7 +363,7 @@ export default function PaymentScreen({ navigation, route }) {
                   <Text style={styles.step}>2. Select <Text style={styles.hl}>"Send Money"</Text></Text>
                   <Text style={styles.step}>3. Enter number: <Text style={styles.hl}>{detail.number}</Text></Text>
                   <Text style={styles.step}>4. Enter amount: <Text style={styles.hl}>UGX {amountDue.toLocaleString()}</Text></Text>
-                  <Text style={styles.step}>5. For reason/reference, enter: <Text style={styles.hl}>{allProductNames || 'Product payment'}</Text></Text>
+                  <Text style={styles.step}>5. For reason/reference, enter: <Text style={styles.hl}>{orderRef}</Text></Text>
                   <Text style={styles.step}>6. Confirm and send</Text>
                   {detail.name ? (
                     <View style={styles.senderWarning}>
@@ -380,7 +385,7 @@ export default function PaymentScreen({ navigation, route }) {
                   <Text style={styles.step}>Account No: <Text style={styles.hl}>{p.bankAccountNumber}</Text></Text>
                   {p.bankBranch ? <Text style={styles.step}>Branch: <Text style={styles.hl}>{p.bankBranch}</Text></Text> : null}
                   <Text style={styles.step}>Amount: <Text style={styles.hl}>UGX {amountDue.toLocaleString()}</Text></Text>
-                  <Text style={styles.step}>Reference/Narration: <Text style={styles.hl}>{allProductNames || 'Product payment'}</Text></Text>
+                  <Text style={styles.step}>Reference/Narration: <Text style={styles.hl}>{orderRef}</Text></Text>
                   {p.bankAccountName ? (
                     <View style={styles.senderWarning}>
                       <Ionicons name="warning-outline" size={14} color="#e67e22" />

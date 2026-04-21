@@ -18,6 +18,7 @@ import {
   Platform,
   PanResponder,
 } from 'react-native';
+import { WebView } from 'react-native-webview';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import CartWishlistService from '../services/cartWishlistService';
 import QuantitySelector from '../components/QuantitySelector';
@@ -155,6 +156,8 @@ const ProductDetails = ({ navigation, route }) => {
   const [showImageModal, setShowImageModal] = useState(false);
   const [modalImageIndex, setModalImageIndex] = useState(0);
   const [currentModalIndex, setCurrentModalIndex] = useState(0);
+  const [showVideoModal, setShowVideoModal] = useState(false);
+  const [videoModalUrl, setVideoModalUrl] = useState('');
   const [showAIChat, setShowAIChat] = useState(false);
   const [aiChatMessages, setAiChatMessages] = useState([]);
   const [aiChatSuggestions, setAiChatSuggestions] = useState([]);
@@ -894,25 +897,12 @@ Backed by our quality guarantee and excellent customer service, you can purchase
                       ]
                     );
                   } else if (item.type === 'video') {
-                    // For non-YouTube videos, try to open in browser
-                    Alert.alert(
-                      'Watch Video',
-                      'Open this video in your browser?',
-                      [
-                        { text: 'Cancel', style: 'cancel' },
-                        { 
-                          text: 'Open', 
-                          onPress: async () => {
-                            try {
-                              await Linking.openURL(item.url);
-                            } catch (error) {
-                              console.error('Error opening video:', error);
-                              Alert.alert('Error', 'Failed to open video');
-                            }
-                          }
-                        }
-                      ]
-                    );
+                    // Open video in inline modal
+                    const embedUrl = item.isYouTube
+                      ? `https://www.youtube.com/embed/${item.url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/)?.[1]}?autoplay=1`
+                      : item.url;
+                    setVideoModalUrl(embedUrl);
+                    setShowVideoModal(true);
                   } else {
                     // Image clicked - stop auto scroll and open modal
                     console.log('Stopping auto-scroll and opening modal');
@@ -1774,6 +1764,33 @@ Backed by our quality guarantee and excellent customer service, you can purchase
       
       {/* Image Modal */}
       {renderImageModal()}
+
+      {/* Video Modal */}
+      <Modal
+        visible={showVideoModal}
+        transparent={false}
+        animationType="slide"
+        statusBarTranslucent
+        onRequestClose={() => setShowVideoModal(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: '#000' }}>
+          <TouchableOpacity
+            onPress={() => setShowVideoModal(false)}
+            style={{ position: 'absolute', top: 44, right: 16, zIndex: 10, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 20, padding: 8 }}
+          >
+            <Ionicons name="close" size={24} color="#fff" />
+          </TouchableOpacity>
+          {videoModalUrl ? (
+            <WebView
+              source={{ uri: videoModalUrl }}
+              style={{ flex: 1 }}
+              allowsFullscreenVideo
+              mediaPlaybackRequiresUserAction={false}
+              javaScriptEnabled
+            />
+          ) : null}
+        </View>
+      </Modal>
 
       {/* AI Chat Bottom Sheet */}
       <ProductAIChat

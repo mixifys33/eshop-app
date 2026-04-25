@@ -1,13 +1,14 @@
 // Import URL polyfill for React Native (required for ImageKit SDK)
 import 'react-native-url-polyfill/auto';
 
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, FlatList, Image, TouchableOpacity, Alert, ScrollView, TextInput, Dimensions, Modal } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { StyleSheet, Text, View, FlatList, Image, TouchableOpacity, Alert, ScrollView, TextInput, Dimensions, Modal, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons, MaterialIcons, Feather } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { ThemeProvider } from './context/ThemeContext';
+import { initPushNotifications } from './services/pushNotificationService';
 
 // Import screens
 import SellerSignup from './screens/SellerSignup';
@@ -209,6 +210,42 @@ export default function App() {
   // Debug current screen
   console.log('Current screen:', currentScreen);
   console.log('Navigation stack:', navigationStack);
+
+  // ── Push Notifications ────────────────────────────────────────────────────
+  const notificationCleanupRef = useRef(null);
+
+  useEffect(() => {
+    // Only init on real devices (not web/simulator)
+    if (Platform.OS === 'web') return;
+
+    const handleNotification = (notification) => {
+      // App is open — show a toast with the notification content
+      const { title, body } = notification.request.content;
+      Toast.show({
+        type: 'info',
+        text1: title || 'EasyShop',
+        text2: body || '',
+        visibilityTime: 5000,
+      });
+    };
+
+    const handleNotificationResponse = (response) => {
+      // User tapped the notification — navigate based on data
+      const data = response.notification.request.content.data;
+      if (data?.screen) {
+        navigation.navigate(data.screen, data.params || {});
+      }
+    };
+
+    initPushNotifications(handleNotification, handleNotificationResponse)
+      .then(cleanup => { notificationCleanupRef.current = cleanup; })
+      .catch(err => console.warn('[Push] Init error:', err));
+
+    return () => {
+      notificationCleanupRef.current?.();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [pendingScreen, setPendingScreen] = useState(null);

@@ -51,6 +51,14 @@
       "expo-font",
       "expo-image-picker",
       [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#115061",
+          "sounds": []
+        }
+      ],
+      [
         "expo-build-properties",
         {
           "android": {

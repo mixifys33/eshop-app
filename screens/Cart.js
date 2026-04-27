@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  Image, StatusBar, Alert, TextInput, ActivityIndicator, Modal,
+  Image, StatusBar, Alert, TextInput, ActivityIndicator, Modal, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../context/ThemeContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import API_BASE from '../constants/api';
 const API = API_BASE;
@@ -25,6 +26,7 @@ const getShopName = (sid) => {
 
 const Cart = ({ navigation }) => {
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [promoCode, setPromoCode] = useState('');
@@ -413,7 +415,12 @@ const EmptyCart = ({ onShop }) => (
 
   if (loading) return (
     <View style={[styles.container, { backgroundColor: theme.bg }]}>
-      <View style={[styles.header, { backgroundColor: theme.headerBg, borderBottomColor: theme.headerBorder }]}>
+      <StatusBar 
+        barStyle="dark-content" 
+        backgroundColor="transparent"
+        translucent={true}
+      />
+      <View style={[styles.header, { backgroundColor: theme.headerBg, borderBottomColor: theme.headerBorder, paddingTop: insets.top + 10 }]}>
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={24} color={theme.text} />
@@ -430,11 +437,15 @@ const EmptyCart = ({ onShop }) => (
 
   return (
     <View style={[styles.container, { backgroundColor: theme.bg }]}>
-      <StatusBar barStyle={theme.statusBar} backgroundColor={theme.headerBg} />
+      <StatusBar 
+        barStyle="dark-content" 
+        backgroundColor="transparent"
+        translucent={true}
+      />
       <DeliveryModal />
 
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: theme.headerBg, borderBottomColor: theme.headerBorder }]}>
+      <View style={[styles.header, { backgroundColor: theme.headerBg, borderBottomColor: theme.headerBorder, paddingTop: insets.top + 10 }]}>
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={24} color="#2c3e50" />
@@ -467,7 +478,15 @@ const EmptyCart = ({ onShop }) => (
       </View>
 
       {cartItems.length === 0 ? <EmptyCart onShop={() => navigation.navigate('home')} /> : (
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <ScrollView 
+          showsVerticalScrollIndicator={false} 
+          contentContainerStyle={[styles.scrollContent, {
+            paddingBottom: insets.bottom + 20,
+          }]}
+          bounces={true}
+          scrollEventThrottle={16}
+          removeClippedSubviews={Platform.OS === 'android'}
+        >
 
           {/* Cart Items */}
           {cartItems.map(item => (

@@ -24,6 +24,7 @@ import {
 import { useTheme } from '../context/ThemeContext';
 import API_BASE from '../constants/api';
 import { saveProductsCache, loadProductsCache } from '../utils/productsCache';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -370,6 +371,7 @@ const ESLogo = ({ onPress }) => {
 const UserHome = ({ navigation }) => {
   console.log('UserHome component is rendering');
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [filteredProducts, setFilteredProducts] = useState([]);
@@ -875,10 +877,13 @@ const UserHome = ({ navigation }) => {
   };
 
   const renderHeader = () => (
-    <View style={styles.header}>
-      <StatusBar barStyle="dark-content" backgroundColor="white" />
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.headerContent}>
+    <View style={[styles.header, { paddingTop: insets.top }]}>
+      <StatusBar 
+        barStyle="dark-content" 
+        backgroundColor="transparent"
+        translucent={true}
+      />
+      <View style={styles.headerContent}>
           {showSearchBar ? (
             // Expanded search mode
             <View style={styles.searchMode}>
@@ -948,7 +953,7 @@ const UserHome = ({ navigation }) => {
             </View>
           )}
         </View>
-      </SafeAreaView>
+      </View>
     </View>
   );
 
@@ -1365,8 +1370,9 @@ const UserHome = ({ navigation }) => {
         bounces={Platform.OS === 'ios'}
         overScrollMode="never"
         keyboardShouldPersistTaps="handled"
-        scrollEventThrottle={400}
-        contentContainerStyle={{ paddingBottom: 80 }}
+        scrollEventThrottle={16}
+        removeClippedSubviews={Platform.OS === 'android'}
+        contentContainerStyle={{ paddingBottom: 60 + Math.max(insets.bottom, 8) + 20 }}
         onScroll={({ nativeEvent }) => {
           const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
           if (!contentSize?.height) return;
@@ -1380,7 +1386,10 @@ const UserHome = ({ navigation }) => {
       </ScrollView>
 
       {/* Floating Bottom Navigation Bar */}
-      <SafeAreaView style={styles.bottomNavSafe}>
+      <View style={[styles.bottomNavSafe, { 
+        paddingBottom: Math.max(insets.bottom, 8),
+        height: 60 + Math.max(insets.bottom, 8)
+      }]}>
         <View style={styles.bottomNav}>
           {[
             { label: 'Home',       icon: 'home',                        screen: 'home',                              active: true },
@@ -1412,7 +1421,7 @@ const UserHome = ({ navigation }) => {
             </TouchableOpacity>
           ))}
         </View>
-      </SafeAreaView>
+      </View>
     </View>
   );
 };
@@ -1441,9 +1450,6 @@ const styles = StyleSheet.create({
         boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
       },
     }),
-  },
-  safeArea: {
-    backgroundColor: 'white',
   },
   headerContent: {
     paddingHorizontal: 16,
@@ -2082,7 +2088,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
     paddingTop: 8,
-    paddingBottom: 8,
     elevation: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -3 },

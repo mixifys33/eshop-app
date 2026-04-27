@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Dimensions,
+  StatusBar,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
@@ -18,10 +19,12 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
 import CustomToast from "../components/CustomToast";
 import API_BASE from "../constants/api";
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width, height } = Dimensions.get("window");
 
 const Login = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -203,6 +206,11 @@ const Login = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+      <StatusBar 
+        barStyle="light-content" 
+        backgroundColor="transparent"
+        translucent={true}
+      />
       <KeyboardAvoidingView
         style={styles.keyboardContainer}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -214,7 +222,7 @@ const Login = ({ navigation }) => {
         />
 
         {/* Header Section */}
-        <View style={styles.headerSection}>
+        <View style={[styles.headerSection, { paddingTop: insets.top + 20 }]}>
           <View style={styles.logoContainer}>
             <LinearGradient
               colors={["#FF6B6B", "#4ECDC4"]}
@@ -229,8 +237,14 @@ const Login = ({ navigation }) => {
         </View>
 
         <ScrollView
-          contentContainerStyle={styles.scrollContainer}
+          contentContainerStyle={[styles.scrollContainer, {
+            paddingBottom: insets.bottom + 20,
+            flexGrow: 1,
+          }]}
           showsVerticalScrollIndicator={false}
+          bounces={true}
+          scrollEventThrottle={16}
+          removeClippedSubviews={Platform.OS === 'android'}
         >
           {/* Main Form Card */}
           <View style={styles.formCard}>
@@ -477,7 +491,6 @@ const styles = StyleSheet.create({
     height: height * 0.4,
   },
   headerSection: {
-    paddingTop: Platform.OS === "ios" ? 60 : 40,
     paddingHorizontal: 24,
     paddingBottom: 40,
     alignItems: "center",

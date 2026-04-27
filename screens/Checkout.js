@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  TextInput, ActivityIndicator, Alert, Platform,
+  TextInput, ActivityIndicator, Alert, Platform, StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import API from '../config';
 
@@ -16,6 +17,7 @@ const getSellerId = (sid) => {
 };
 
 export default function Checkout({ navigation, route }) {
+  const insets = useSafeAreaInsets();
   const {
     cartItems = [],
     selectedDelivery = {},
@@ -405,7 +407,12 @@ export default function Checkout({ navigation, route }) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <StatusBar 
+        barStyle="dark-content" 
+        backgroundColor="transparent"
+        translucent={true}
+      />
+      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
@@ -413,7 +420,15 @@ export default function Checkout({ navigation, route }) {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        contentContainerStyle={[styles.scroll, {
+          paddingBottom: insets.bottom + 20,
+        }]} 
+        showsVerticalScrollIndicator={false}
+        bounces={true}
+        scrollEventThrottle={16}
+        removeClippedSubviews={Platform.OS === 'android'}
+      >
 
         {/* Delivery Info */}
         <View style={styles.section}>
@@ -553,7 +568,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f4f6f8' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingTop: Platform.OS === 'ios' ? 50 : 40,
+    paddingHorizontal: 16,
     paddingBottom: 14, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eee',
   },
   backBtn: { width: 40, height: 40, justifyContent: 'center' },

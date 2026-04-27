@@ -24,6 +24,7 @@ import CartWishlistService from '../services/cartWishlistService';
 import QuantitySelector from '../components/QuantitySelector';
 import ProductAIChat from '../components/ProductAIChat';
 import API_BASE from '../constants/api';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width, height } = Dimensions.get('window');
 
@@ -123,6 +124,7 @@ const ZoomableImageView = ({ uri }) => {
 };
 
 const ProductDetails = ({ navigation, route }) => {
+  const insets = useSafeAreaInsets();
   // Debug logging
   console.log('=== ProductDetails Screen Loaded ===');
   console.log('Route params:', route.params);
@@ -1721,12 +1723,15 @@ Shop on EshopUG - Uganda's #1 Online Marketplace!
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="white" translucent={false} />
+      <StatusBar 
+        barStyle="dark-content" 
+        backgroundColor="transparent"
+        translucent={true}
+      />
       
       {/* Home-Style Header */}
-      <View style={styles.homeHeader}>
-        <SafeAreaView style={styles.safeArea}>
-          <View style={styles.homeHeaderContent}>
+      <View style={[styles.homeHeader, { paddingTop: insets.top }]}>
+        <View style={styles.homeHeaderContent}>
             {/* Back Button + Title */}
             <View style={styles.headerLeftSection}>
               <TouchableOpacity 
@@ -1784,14 +1789,19 @@ Shop on EshopUG - Uganda's #1 Online Marketplace!
               </TouchableOpacity>
             </View>
           </View>
-        </SafeAreaView>
+        </View>
       </View>
 
       <ScrollView
         style={styles.scrollView}
+        contentContainerStyle={{
+          paddingBottom: insets.bottom + 80,
+        }}
         onScroll={handleScroll}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
+        bounces={true}
+        removeClippedSubviews={Platform.OS === 'android'}
       >
         {/* Image Gallery */}
         {renderImageGallery()}

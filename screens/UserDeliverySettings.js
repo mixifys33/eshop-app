@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  TextInput, Alert, ActivityIndicator, Modal, Platform
+  TextInput, Alert, ActivityIndicator, Modal, Platform, SafeAreaView, StatusBar,
 } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 import API_BASE from '../constants/api';
 const API = API_BASE;
@@ -144,28 +145,30 @@ export default function UserDeliverySettings({ navigation }) {
   }, {});
 
   if (loading) return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#667eea" />
+      <LinearGradient colors={['#667eea', '#764ba2']} style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Delivery Preferences</Text>
         <View style={{ width: 40 }} />
-      </View>
+      </LinearGradient>
       <View style={styles.center}><ActivityIndicator size="large" color="#667eea" /></View>
-    </View>
+    </SafeAreaView>
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#667eea" />
       {/* Header */}
       <LinearGradient colors={['#667eea', '#764ba2']} style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Delivery Preferences</Text>
         {savedSettings
-          ? <TouchableOpacity onPress={clearSettings} style={styles.clearBtn}>
+          ? <TouchableOpacity onPress={clearSettings} style={styles.clearBtn} activeOpacity={0.7}>
               <Ionicons name="trash-outline" size={20} color="white" />
             </TouchableOpacity>
           : <View style={{ width: 40 }} />
@@ -272,14 +275,15 @@ export default function UserDeliverySettings({ navigation }) {
           </View>
         </View>
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: 100 }} />
       </ScrollView>
 
       {/* ── Terminal Picker Modal ── */}
       <Modal visible={showTerminalModal} animationType="slide">
-        <View style={styles.modalContainer}>
+        <SafeAreaView style={styles.modalContainer}>
+          <StatusBar barStyle="dark-content" backgroundColor="#fff" />
           <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setShowTerminalModal(false)} style={styles.backBtn2}>
+            <TouchableOpacity onPress={() => setShowTerminalModal(false)} style={styles.backBtn2} activeOpacity={0.7}>
               <Ionicons name="arrow-back" size={22} color="#333" />
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Select Link Bus Terminal</Text>
@@ -314,6 +318,7 @@ export default function UserDeliverySettings({ navigation }) {
                       key={t._id}
                       style={[styles.terminalRow, isSelected && styles.terminalRowSelected]}
                       onPress={() => selectTerminal(t)}
+                      activeOpacity={0.7}
                     >
                       <Ionicons name="bus-outline" size={18} color={isSelected ? '#27ae60' : '#e74c3c'} />
                       <View style={{ flex: 1, marginLeft: 12 }}>
@@ -332,12 +337,17 @@ export default function UserDeliverySettings({ navigation }) {
             )}
             <View style={{ height: 40 }} />
           </ScrollView>
-        </View>
+        </SafeAreaView>
       </Modal>
 
       {/* ── Custom Address Modal ── */}
       <Modal visible={showAddressModal} transparent animationType="slide">
-        <View style={styles.bottomSheet}>
+        <KeyboardAwareScrollView
+          style={styles.bottomSheet}
+          contentContainerStyle={{ flex: 1, justifyContent: 'flex-end' }}
+          keyboardShouldPersistTaps="handled"
+          enableOnAndroid={true}
+        >
           <View style={styles.bottomSheetBox}>
             <Text style={styles.modalTitle}>Enter Your Address</Text>
 
@@ -367,17 +377,17 @@ export default function UserDeliverySettings({ navigation }) {
             />
 
             <View style={styles.sheetActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowAddressModal(false)}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowAddressModal(false)} activeOpacity={0.7}>
                 <Text style={styles.cancelBtnText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.saveBtn} onPress={saveCustomAddress}>
+              <TouchableOpacity style={styles.saveBtn} onPress={saveCustomAddress} activeOpacity={0.8}>
                 {saving ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.saveBtnText}>Save Address</Text>}
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAwareScrollView>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -386,12 +396,17 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingTop: Platform.OS === 'ios' ? 50 : 40, paddingBottom: 16,
+    paddingHorizontal: 16, paddingVertical: 16,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   backBtn: { width: 40, height: 40, justifyContent: 'center' },
   clearBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-end' },
   headerTitle: { fontSize: 18, fontWeight: '700', color: '#fff' },
-  scroll: { padding: 16 },
+  scroll: { padding: 16, paddingBottom: 100 },
 
   // Saved card
   savedCard: {
@@ -445,8 +460,13 @@ const styles = StyleSheet.create({
   modalContainer: { flex: 1, backgroundColor: '#fff' },
   modalHeader: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingHorizontal: 16, paddingTop: Platform.OS === 'ios' ? 50 : 40,
-    paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#eee',
+    paddingHorizontal: 16, paddingVertical: 12,
+    borderBottomWidth: 1, borderBottomColor: '#eee',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
   },
   backBtn2: { padding: 4 },
   modalTitle: { fontSize: 17, fontWeight: '700', color: '#333', flex: 1 },

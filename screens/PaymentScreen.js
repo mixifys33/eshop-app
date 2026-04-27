@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Alert, Platform, Image,
+  ActivityIndicator, Alert, Platform, Image, SafeAreaView, StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import Toast from 'react-native-toast-message';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 import API from '../config';
 import { generateOrderRef } from '../utils/generateOrderRef';
@@ -289,16 +290,23 @@ export default function PaymentScreen({ navigation, route }) {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Payment</Text>
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <KeyboardAwareScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        enableOnAndroid={true}
+        extraScrollHeight={20}
+      >
 
         <View style={styles.infoBanner}>
           <Ionicons name="information-circle-outline" size={18} color="#3498db" />
@@ -578,6 +586,7 @@ export default function PaymentScreen({ navigation, route }) {
           style={[styles.confirmBtn, verifying && styles.confirmBtnDisabled]}
           onPress={confirmOrder}
           disabled={placing || verifying}
+          activeOpacity={0.8}
         >
           {placing
             ? <ActivityIndicator size="small" color="#fff" />
@@ -588,19 +597,33 @@ export default function PaymentScreen({ navigation, route }) {
               </Text></>
           }
         </TouchableOpacity>
-        <View style={{ height: 40 }} />
+        <View style={{ height: 100 }} />
 
-      </ScrollView>
-    </View>
+      </KeyboardAwareScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f4f6f8' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: Platform.OS === 'ios' ? 50 : 40, paddingBottom: 14, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eee' },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
   backBtn: { width: 40, height: 40, justifyContent: 'center' },
   headerTitle: { fontSize: 18, fontWeight: '700', color: '#333' },
-  scroll: { padding: 16 },
+  scroll: { padding: 16, paddingBottom: 100 },
   infoBanner: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, backgroundColor: '#e8f4fd', borderRadius: 10, padding: 12, marginBottom: 14 },
   infoText: { flex: 1, fontSize: 13, color: '#2980b9', lineHeight: 18 },
   card: { backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 14, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.07, shadowRadius: 6 },

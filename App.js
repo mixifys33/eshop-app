@@ -2,7 +2,7 @@
 import 'react-native-url-polyfill/auto';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, FlatList, Image, TouchableOpacity, Alert, ScrollView, TextInput, Dimensions, Modal, Platform } from 'react-native';
+import { StyleSheet, Text, View, FlatList, Image, TouchableOpacity, Alert, ScrollView, TextInput, Dimensions, Modal, Platform, BackHandler } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons, MaterialIcons, Feather } from '@expo/vector-icons';
@@ -434,6 +434,30 @@ export default function App() {
 
   // ── Wire navigation ref so push notification handler can always navigate ──
   navigationRef.current = navigation;
+
+  // ── Hardware Back Button Handler (Android) ──────────────────────────────────
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      console.log('🔙 Hardware back button pressed');
+      console.log('Current screen:', currentScreen);
+      console.log('Navigation stack length:', navigationStack.length);
+
+      // If we're on the home screen, let the system handle it (exit app)
+      if (currentScreen === 'home') {
+        console.log('On home screen, allowing app exit');
+        return false; // Let system handle (exit app)
+      }
+
+      // Otherwise, go back in our navigation stack
+      console.log('Going back in navigation stack');
+      navigation.goBack();
+      return true; // We handled it
+    });
+
+    return () => backHandler.remove();
+  }, [currentScreen, navigationStack]); // Re-run when screen or stack changes
 
   // Get filtered products by category
   const trendingProducts = products.filter(p => p.isTrending);

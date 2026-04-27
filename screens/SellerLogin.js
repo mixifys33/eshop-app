@@ -79,6 +79,14 @@ const SellerLogin = ({ navigation }) => {
         // Save seller data to AsyncStorage for dashboard use
         try {
           await AsyncStorage.setItem('currentSeller', JSON.stringify(data.seller));
+          // ── Link push token to this seller ──
+          try {
+            const { linkPushTokenToUser } = require('../services/pushNotificationService');
+            const sellerId = data.seller?._id || data.seller?.id;
+            if (sellerId) await linkPushTokenToUser(sellerId);
+          } catch (pushErr) {
+            console.warn('[SellerLogin] Push token link failed (non-fatal):', pushErr.message);
+          }
           showSuccess('Login successful! Redirecting to dashboard...', 2000);
         } catch (storageError) {
           showWarning('Login successful but failed to save session data');

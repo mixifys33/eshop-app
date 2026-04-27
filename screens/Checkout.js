@@ -289,6 +289,16 @@ export default function Checkout({ navigation, route }) {
       await AsyncStorage.removeItem('cart');
 
       if (results.every(Boolean)) {
+        // ── Fire local notification confirming order placement ──
+        try {
+          const { sendLocalNotification } = require('../services/pushNotificationService');
+          await sendLocalNotification(
+            '🎉 Order Placed!',
+            `Your order worth UGX ${total.toLocaleString()} has been placed successfully.`,
+            { type: 'new_order', screen: 'UserOrders' },
+            'orders'
+          );
+        } catch (_) {}
         navigation.replace('OrderSuccess', { total, orderCount: count });
       } else {
         Alert.alert('Order Error', 'Some orders could not be placed. Please try again or contact support.', [

@@ -742,12 +742,59 @@ Backed by our quality guarantee and excellent customer service, you can purchase
 
   const handleShare = async () => {
     try {
+      // Create comprehensive share message
+      const productWebUrl = `https://eshopug.vercel.app/product/${product.id || product._id}`;
+      const apkDownloadUrl = 'https://github.com/mixifys33/eshop-app/releases/download/eshop/Eshop.auto-update.latest.apk';
+      
+      // Format price with discount if available
+      const priceText = product.originalPrice && product.originalPrice > product.price 
+        ? `💰 UGX ${product.price?.toLocaleString()} (was UGX ${product.originalPrice?.toLocaleString()}) - ${Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF!`
+        : `💰 UGX ${product.price?.toLocaleString()}`;
+      
+      // Build features list
+      const features = product.features && product.features.length > 0 
+        ? product.features.slice(0, 4).map(feature => `• ${feature}`).join('\n')
+        : `• Premium Quality\n• Fast Delivery\n• Authentic Product\n• Best Price Guaranteed`;
+      
+      // Build seller info
+      const sellerInfo = product.seller 
+        ? `🏪 Sold by: ${product.seller.name}\n⭐ ${product.seller.rating}/5 rating`
+        : `🏪 Sold by: Verified Seller\n⭐ 4.8/5 rating`;
+      
+      // Build shipping info
+      const shippingInfo = product.shipping?.freeShipping 
+        ? '📦 FREE delivery available'
+        : '📦 Fast delivery across Uganda';
+      
+      const shareMessage = `🛍️ ${product.name}
+${priceText}
+
+📝 ${product.description ? product.description.substring(0, 120) + '...' : 'Premium quality product with excellent features and reliable performance.'}
+
+✨ Key Features:
+${features}
+
+${sellerInfo}
+${shippingInfo}
+
+🌐 View on Web: ${productWebUrl}
+
+📱 Download EshopUG App:
+${apkDownloadUrl}
+
+Shop on EshopUG - Uganda's #1 Online Marketplace!
+🇺🇬 Supporting Local Business | Fast Delivery | Secure Payments
+
+#EshopUG #Uganda #OnlineShopping #${product.category?.replace(/\s+/g, '')} #BestDeals`;
+
       await Share.share({
-        message: `Check out this amazing product: ${product.name} - UGX ${product.price?.toLocaleString()}`,
-        title: product.name
+        message: shareMessage,
+        title: `${product.name} - EshopUG`,
+        url: productWebUrl, // This will be used on iOS
       });
     } catch (error) {
       console.error('Error sharing:', error);
+      Alert.alert('Share Error', 'Unable to share this product. Please try again.');
     }
   };
 

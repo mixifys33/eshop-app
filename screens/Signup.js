@@ -337,6 +337,16 @@ const Signup = ({ navigation }) => {
       const data = await response.json();
 
       if (response.ok) {
+        // ── Pre-link push token so new user gets notifications immediately ──
+        try {
+          const { linkPushTokenToUser } = require('../services/pushNotificationService');
+          // response may include userId — use email as fallback identifier
+          const newUserId = data.user?._id || data.user?.id || null;
+          if (newUserId) await linkPushTokenToUser(newUserId);
+        } catch (pushErr) {
+          console.warn('[Signup] Push token link failed (non-fatal):', pushErr.message);
+        }
+
         Toast.show({
           type: 'success',
           text1: 'Account Verified!',

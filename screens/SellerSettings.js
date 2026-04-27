@@ -83,6 +83,13 @@ const SellerSettings = ({ navigation }) => {
           onPress: async () => {
             try {
               await AsyncStorage.removeItem('currentSeller');
+              // ── Unlink push token on seller logout ──
+              try {
+                const { unlinkPushTokenFromUser } = require('../services/pushNotificationService');
+                await unlinkPushTokenFromUser();
+              } catch (pushErr) {
+                console.warn('[SellerLogout] Push token unlink failed (non-fatal):', pushErr.message);
+              }
               showSuccess('Logged out successfully');
               navigation.navigate('SellerLogin');
             } catch (error) {

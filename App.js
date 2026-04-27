@@ -9,6 +9,7 @@ import { Ionicons, MaterialIcons, Feather } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { ThemeProvider } from './context/ThemeContext';
 import { initPushNotifications } from './services/pushNotificationService';
+import * as Updates from 'expo-updates';
 
 // Import screens
 import SellerSignup from './screens/SellerSignup';
@@ -211,6 +212,9 @@ export default function App() {
   console.log('Current screen:', currentScreen);
   console.log('Navigation stack:', navigationStack);
 
+  // ── Navigation ref — lets push notification handler always use latest nav ──
+  const navigationRef = useRef(null);
+
   // ── Push Notifications ────────────────────────────────────────────────────
   const notificationCleanupRef = useRef(null);
 
@@ -230,10 +234,18 @@ export default function App() {
     };
 
     const handleNotificationResponse = (response) => {
-      // User tapped the notification — navigate based on data
+      // User tapped the notification — use ref so navigation is always available
       const data = response.notification.request.content.data;
+      const nav = navigationRef.current;
+      if (!nav) return;
       if (data?.screen) {
-        navigation.navigate(data.screen, data.params || {});
+        nav.navigate(data.screen, data.params || {});
+      } else if (data?.type === 'new_order') {
+        nav.navigate('UserOrders');
+      } else if (data?.type === 'promo' || data?.type === 'flash_sale') {
+        nav.navigate('home');
+      } else if (data?.type === 'account_approved') {
+        nav.navigate('SellerDashboard');
       }
     };
 
@@ -244,7 +256,73 @@ export default function App() {
     return () => {
       notificationCleanupRef.current?.();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // no deps — uses ref, safe
+
+  // ── Auto-Update Functionality ──────────────────────────────────────────────
+  useEffect(() => {
+    // Only check for updates on real devices (not in development or web)
+    if (__DEV__ || Platform.OS === 'web') {
+      console.log('[Updates] Skipping update check in development/web');
+      return;
+    }
+
+    async function checkForUpdates() {
+      try {
+        console.log('[Updates] Checking for updates...');
+        
+        // Check if updates are available
+        const update = await Updates.checkForUpdateAsync();
+        
+        if (update.isAvailable) {
+          console.log('[Updates] Update available! Downloading...');
+          
+          // Show toast notification
+          Toast.show({
+            type: 'info',
+            text1: 'Update Available',
+            text2: 'Downloading latest version...',
+            visibilityTime: 3000,
+          });
+          
+          // Download the update
+          await Updates.fetchUpdateAsync();
+          
+          console.log('[Updates] Update downloaded successfully');
+          
+          // Show alert and reload
+          Alert.alert(
+            'Update Ready',
+            'A new version has been downloaded. The app will restart to apply the update.',
+            [
+              {
+                text: 'Restart Now',
+                onPress: async () => {
+                  await Updates.reloadAsync();
+                },
+              },
+            ],
+            { cancelable: false }
+          );
+        } else {
+          console.log('[Updates] App is up to date');
+        }
+      } catch (error) {
+        console.error('[Updates] Error checking for updates:', error);
+        // Don't show error to user - fail silently
+      }
+    }
+
+    // Check for updates on app start
+    checkForUpdates();
+
+    // Set up periodic update checks (every 30 minutes)
+    const updateInterval = setInterval(() => {
+      checkForUpdates();
+    }, 30 * 60 * 1000); // 30 minutes
+
+    return () => {
+      clearInterval(updateInterval);
+    };
   }, []);
 
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -352,6 +430,9 @@ export default function App() {
       setCurrentScreen(screen);
     },
   };
+
+  // ── Wire navigation ref so push notification handler can always navigate ──
+  navigationRef.current = navigation;
 
   // Get filtered products by category
   const trendingProducts = products.filter(p => p.isTrending);

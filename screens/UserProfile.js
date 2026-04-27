@@ -91,6 +91,14 @@ const UserProfile = ({ navigation }) => {
             try {
               await AsyncStorage.multiRemove(['userToken', 'userData']);
               
+              // ── Unlink push token from user on logout ──
+              try {
+                const { unlinkPushTokenFromUser } = require('../services/pushNotificationService');
+                await unlinkPushTokenFromUser();
+              } catch (pushErr) {
+                console.warn('[Logout] Push token unlink failed (non-fatal):', pushErr.message);
+              }
+              
               Toast.show({
                 type: 'success',
                 text1: 'Logged Out',

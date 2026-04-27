@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -11,19 +11,19 @@ import {
   KeyboardAvoidingView,
   Platform,
   Dimensions,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import Toast from 'react-native-toast-message';
-import CustomToast from '../components/CustomToast';
-import API_BASE from '../constants/api';
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import Toast from "react-native-toast-message";
+import CustomToast from "../components/CustomToast";
+import API_BASE from "../constants/api";
 
-const { width, height } = Dimensions.get('window');
+const { width, height } = Dimensions.get("window");
 
 const Login = ({ navigation }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -36,47 +36,47 @@ const Login = ({ navigation }) => {
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!email) {
-      newErrors.email = 'Email is required';
+      newErrors.email = "Email is required";
       Toast.show({
-        type: 'error',
-        text1: 'Email Required',
-        text2: 'Please enter your email address',
-        position: 'top',
+        type: "error",
+        text1: "Email Required",
+        text2: "Please enter your email address",
+        position: "top",
         visibilityTime: 3000,
       });
     } else if (!validateEmail(email)) {
-      newErrors.email = 'Invalid email address';
+      newErrors.email = "Invalid email address";
       Toast.show({
-        type: 'error',
-        text1: 'Invalid Email',
-        text2: 'Please enter a valid email address',
-        position: 'top',
+        type: "error",
+        text1: "Invalid Email",
+        text2: "Please enter a valid email address",
+        position: "top",
         visibilityTime: 3000,
       });
     }
-    
+
     if (!password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = "Password is required";
       Toast.show({
-        type: 'error',
-        text1: 'Password Required',
-        text2: 'Please enter your password',
-        position: 'top',
+        type: "error",
+        text1: "Password Required",
+        text2: "Please enter your password",
+        position: "top",
         visibilityTime: 3000,
       });
     } else if (password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+      newErrors.password = "Password must be at least 6 characters";
       Toast.show({
-        type: 'error',
-        text1: 'Password Too Short',
-        text2: 'Password must be at least 6 characters long',
-        position: 'top',
+        type: "error",
+        text1: "Password Too Short",
+        text2: "Password must be at least 6 characters long",
+        position: "top",
         visibilityTime: 3000,
       });
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -86,19 +86,19 @@ const Login = ({ navigation }) => {
 
     // Show loading toast
     Toast.show({
-      type: 'info',
-      text1: 'Signing In...',
-      text2: 'Please wait while we verify your credentials',
-      position: 'top',
+      type: "info",
+      text1: "Signing In...",
+      text2: "Please wait while we verify your credentials",
+      position: "top",
       visibilityTime: 2000,
     });
 
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE}/auth/login`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ email, password }),
       });
@@ -107,70 +107,83 @@ const Login = ({ navigation }) => {
 
       if (response.ok) {
         // Store user data
-        await AsyncStorage.setItem('userToken', data.token);
-        await AsyncStorage.setItem('userData', JSON.stringify(data.user));
+        await AsyncStorage.setItem("userToken", data.token);
+        await AsyncStorage.setItem("userData", JSON.stringify(data.user));
         // currentUser is read by Checkout, PaymentScreen, UserOrders
-        await AsyncStorage.setItem('currentUser', JSON.stringify(data.user));
-        
+        await AsyncStorage.setItem("currentUser", JSON.stringify(data.user));
+
+        // ── Link push token to this user now that they're logged in ──
+        try {
+          const {
+            linkPushTokenToUser,
+          } = require("../services/pushNotificationService");
+          await linkPushTokenToUser(data.user._id || data.user.id);
+        } catch (pushErr) {
+          console.warn(
+            "[Login] Push token link failed (non-fatal):",
+            pushErr.message,
+          );
+        }
+
         if (rememberMe) {
           Toast.show({
-            type: 'info',
-            text1: 'Credentials Saved',
-            text2: 'Your login details have been remembered',
-            position: 'top',
+            type: "info",
+            text1: "Credentials Saved",
+            text2: "Your login details have been remembered",
+            position: "top",
             visibilityTime: 2000,
           });
         }
-        
+
         // Success toast
         Toast.show({
-          type: 'success',
-          text1: 'Welcome Back!',
-          text2: data.message || 'Login successful! Redirecting...',
-          position: 'top',
+          type: "success",
+          text1: "Welcome Back!",
+          text2: data.message || "Login successful! Redirecting...",
+          position: "top",
           visibilityTime: 2000,
         });
 
         // Navigate after a short delay to show the success message
         setTimeout(() => {
-          console.log('Login: Navigating to home screen');
-          navigation.navigate('home');
+          console.log("Login: Navigating to home screen");
+          navigation.navigate("home");
         }, 1500);
       } else {
         // Error toast based on response
-        if (data.message && data.message.includes('Invalid credentials')) {
+        if (data.message && data.message.includes("Invalid credentials")) {
           Toast.show({
-            type: 'error',
-            text1: 'Invalid Credentials',
-            text2: 'Please check your email and password',
-            position: 'top',
+            type: "error",
+            text1: "Invalid Credentials",
+            text2: "Please check your email and password",
+            position: "top",
             visibilityTime: 4000,
           });
-        } else if (data.message && data.message.includes('not verified')) {
+        } else if (data.message && data.message.includes("not verified")) {
           Toast.show({
-            type: 'warning',
-            text1: 'Account Not Verified',
-            text2: 'Please check your email and verify your account',
-            position: 'top',
+            type: "warning",
+            text1: "Account Not Verified",
+            text2: "Please check your email and verify your account",
+            position: "top",
             visibilityTime: 4000,
           });
         } else {
           Toast.show({
-            type: 'error',
-            text1: 'Login Failed',
-            text2: data.message || data.error || 'Something went wrong',
-            position: 'top',
+            type: "error",
+            text1: "Login Failed",
+            text2: data.message || data.error || "Something went wrong",
+            position: "top",
             visibilityTime: 4000,
           });
         }
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error("Login error:", error);
       Toast.show({
-        type: 'error',
-        text1: 'Connection Error',
-        text2: 'Please check your internet connection and try again',
-        position: 'top',
+        type: "error",
+        text1: "Connection Error",
+        text2: "Please check your internet connection and try again",
+        position: "top",
         visibilityTime: 4000,
       });
     } finally {
@@ -180,31 +193,31 @@ const Login = ({ navigation }) => {
 
   const handleGoogleLogin = () => {
     Toast.show({
-      type: 'info',
-      text1: 'Coming Soon!',
-      text2: 'Google login will be available in the next update',
-      position: 'top',
+      type: "info",
+      text1: "Coming Soon!",
+      text2: "Google login will be available in the next update",
+      position: "top",
       visibilityTime: 3000,
     });
   };
 
   return (
     <View style={styles.container}>
-      <KeyboardAvoidingView 
-        style={styles.keyboardContainer} 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         {/* Background Gradient */}
         <LinearGradient
-          colors={['#667eea', '#764ba2']}
+          colors={["#667eea", "#764ba2"]}
           style={styles.backgroundGradient}
         />
-        
+
         {/* Header Section */}
         <View style={styles.headerSection}>
           <View style={styles.logoContainer}>
             <LinearGradient
-              colors={['#FF6B6B', '#4ECDC4']}
+              colors={["#FF6B6B", "#4ECDC4"]}
               style={styles.logoGradient}
             >
               <MaterialIcons name="shopping-bag" size={32} color="white" />
@@ -215,7 +228,7 @@ const Login = ({ navigation }) => {
           <Text style={styles.subtitleText}>Sign in to continue shopping</Text>
         </View>
 
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
         >
@@ -224,10 +237,10 @@ const Login = ({ navigation }) => {
             <View style={styles.formHeader}>
               <Text style={styles.formTitle}>Sign In</Text>
               <Text style={styles.formSubtitle}>
-                Don't have an account?{' '}
-                <Text 
+                Don't have an account?{" "}
+                <Text
                   style={styles.linkText}
-                  onPress={() => navigation.navigate('Signup')}
+                  onPress={() => navigation.navigate("Signup")}
                 >
                   Sign Up
                 </Text>
@@ -235,7 +248,10 @@ const Login = ({ navigation }) => {
             </View>
 
             {/* Social Login */}
-            <TouchableOpacity style={styles.socialButton} onPress={handleGoogleLogin}>
+            <TouchableOpacity
+              style={styles.socialButton}
+              onPress={handleGoogleLogin}
+            >
               <View style={styles.socialIconContainer}>
                 <Ionicons name="logo-google" size={20} color="#4285F4" />
               </View>
@@ -253,8 +269,18 @@ const Login = ({ navigation }) => {
             {/* Email Input */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Email Address</Text>
-              <View style={[styles.inputContainer, errors.email && styles.inputError]}>
-                <MaterialIcons name="email" size={20} color="#9CA3AF" style={styles.inputIcon} />
+              <View
+                style={[
+                  styles.inputContainer,
+                  errors.email && styles.inputError,
+                ]}
+              >
+                <MaterialIcons
+                  name="email"
+                  size={20}
+                  color="#9CA3AF"
+                  style={styles.inputIcon}
+                />
                 <TextInput
                   style={styles.textInput}
                   placeholder="Enter your email"
@@ -264,7 +290,7 @@ const Login = ({ navigation }) => {
                     setEmail(text);
                     // Clear error when user starts typing
                     if (errors.email) {
-                      setErrors(prev => ({ ...prev, email: null }));
+                      setErrors((prev) => ({ ...prev, email: null }));
                     }
                   }}
                   keyboardType="email-address"
@@ -272,14 +298,26 @@ const Login = ({ navigation }) => {
                   autoCorrect={false}
                 />
               </View>
-              {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+              {errors.email && (
+                <Text style={styles.errorText}>{errors.email}</Text>
+              )}
             </View>
 
             {/* Password Input */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Password</Text>
-              <View style={[styles.inputContainer, errors.password && styles.inputError]}>
-                <MaterialIcons name="lock" size={20} color="#9CA3AF" style={styles.inputIcon} />
+              <View
+                style={[
+                  styles.inputContainer,
+                  errors.password && styles.inputError,
+                ]}
+              >
+                <MaterialIcons
+                  name="lock"
+                  size={20}
+                  color="#9CA3AF"
+                  style={styles.inputIcon}
+                />
                 <TextInput
                   style={styles.textInput}
                   placeholder="Enter your password"
@@ -289,7 +327,7 @@ const Login = ({ navigation }) => {
                     setPassword(text);
                     // Clear error when user starts typing
                     if (errors.password) {
-                      setErrors(prev => ({ ...prev, password: null }));
+                      setErrors((prev) => ({ ...prev, password: null }));
                     }
                   }}
                   secureTextEntry={!passwordVisible}
@@ -299,41 +337,52 @@ const Login = ({ navigation }) => {
                   style={styles.eyeButton}
                   onPress={() => setPasswordVisible(!passwordVisible)}
                 >
-                  <Ionicons 
-                    name={passwordVisible ? 'eye' : 'eye-off'} 
-                    size={20} 
-                    color="#9CA3AF" 
+                  <Ionicons
+                    name={passwordVisible ? "eye" : "eye-off"}
+                    size={20}
+                    color="#9CA3AF"
                   />
                 </TouchableOpacity>
               </View>
-              {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+              {errors.password && (
+                <Text style={styles.errorText}>{errors.password}</Text>
+              )}
             </View>
 
             {/* Options Row */}
             <View style={styles.optionsRow}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.checkboxContainer}
                 onPress={() => setRememberMe(!rememberMe)}
               >
-                <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
-                  {rememberMe && <Ionicons name="checkmark" size={14} color="white" />}
+                <View
+                  style={[
+                    styles.checkbox,
+                    rememberMe && styles.checkboxChecked,
+                  ]}
+                >
+                  {rememberMe && (
+                    <Ionicons name="checkmark" size={14} color="white" />
+                  )}
                 </View>
                 <Text style={styles.checkboxText}>Remember me</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity onPress={() => navigation.navigate('UserForgotPassword')}>
+
+              <TouchableOpacity
+                onPress={() => navigation.navigate("UserForgotPassword")}
+              >
                 <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
               </TouchableOpacity>
             </View>
 
             {/* Login Button */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.loginButton, loading && styles.buttonDisabled]}
               onPress={handleLogin}
               disabled={loading}
             >
               <LinearGradient
-                colors={['#667eea', '#764ba2']}
+                colors={["#667eea", "#764ba2"]}
                 style={styles.buttonGradient}
               >
                 {loading ? (
@@ -341,7 +390,12 @@ const Login = ({ navigation }) => {
                 ) : (
                   <>
                     <Text style={styles.buttonText}>Sign In</Text>
-                    <Ionicons name="arrow-forward" size={18} color="white" style={styles.buttonIcon} />
+                    <Ionicons
+                      name="arrow-forward"
+                      size={18}
+                      color="white"
+                      style={styles.buttonIcon}
+                    />
                   </>
                 )}
               </LinearGradient>
@@ -350,18 +404,18 @@ const Login = ({ navigation }) => {
             {/* Footer */}
             <View style={styles.formFooter}>
               {/* Continue as Guest */}
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.guestButton}
                 onPress={() => {
                   Toast.show({
-                    type: 'info',
-                    text1: 'Welcome Guest!',
-                    text2: 'You can browse products without an account',
-                    position: 'top',
+                    type: "info",
+                    text1: "Welcome Guest!",
+                    text2: "You can browse products without an account",
+                    position: "top",
                     visibilityTime: 2000,
                   });
                   setTimeout(() => {
-                    navigation.navigate('home');
+                    navigation.navigate("home");
                   }, 1000);
                 }}
               >
@@ -370,27 +424,32 @@ const Login = ({ navigation }) => {
               </TouchableOpacity>
 
               <Text style={styles.footerText}>
-                By signing in, you agree to our{' '}
-                <Text style={styles.linkText}>Terms of Service</Text>
-                {' '}and{' '}
+                By signing in, you agree to our{" "}
+                <Text style={styles.linkText}>Terms of Service</Text> and{" "}
                 <Text style={styles.linkText}>Privacy Policy</Text>
               </Text>
 
               {/* Special Guest */}
               <TouchableOpacity
                 style={styles.specialGuestButton}
-                onPress={() => navigation.navigate('SpecialGuest')}
+                onPress={() => navigation.navigate("SpecialGuest")}
               >
-                <Ionicons name="shield-checkmark-outline" size={16} color="#115061" />
-                <Text style={styles.specialGuestText}>Continue with special guest credentials</Text>
+                <Ionicons
+                  name="shield-checkmark-outline"
+                  size={16}
+                  color="#115061"
+                />
+                <Text style={styles.specialGuestText}>
+                  Continue with special guest credentials
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-      
+
       {/* Toast Component */}
-      <Toast 
+      <Toast
         config={{
           success: (props) => <CustomToast {...props} type="success" />,
           error: (props) => <CustomToast {...props} type="error" />,
@@ -405,36 +464,36 @@ const Login = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: "#f8fafc",
   },
   keyboardContainer: {
     flex: 1,
   },
   backgroundGradient: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     height: height * 0.4,
   },
   headerSection: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingTop: Platform.OS === "ios" ? 60 : 40,
     paddingHorizontal: 24,
     paddingBottom: 40,
-    alignItems: 'center',
+    alignItems: "center",
   },
   logoContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 24,
   },
   logoGradient: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -442,31 +501,31 @@ const styles = StyleSheet.create({
   },
   brandName: {
     fontSize: 28,
-    fontWeight: '700',
-    color: 'white',
+    fontWeight: "700",
+    color: "white",
     letterSpacing: 0.5,
   },
   welcomeText: {
     fontSize: 24,
-    fontWeight: '600',
-    color: 'white',
+    fontWeight: "600",
+    color: "white",
     marginBottom: 8,
   },
   subtitleText: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
-    textAlign: 'center',
+    color: "rgba(255, 255, 255, 0.8)",
+    textAlign: "center",
   },
   scrollContainer: {
     flexGrow: 1,
     paddingHorizontal: 24,
   },
   formCard: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 24,
     padding: 32,
     marginTop: -20,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.1,
     shadowRadius: 20,
@@ -474,30 +533,30 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   formHeader: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 32,
   },
   formTitle: {
     fontSize: 28,
-    fontWeight: '700',
-    color: '#1f2937',
+    fontWeight: "700",
+    color: "#1f2937",
     marginBottom: 8,
   },
   formSubtitle: {
     fontSize: 16,
-    color: '#6b7280',
-    textAlign: 'center',
+    color: "#6b7280",
+    textAlign: "center",
   },
   linkText: {
-    color: '#667eea',
-    fontWeight: '600',
+    color: "#667eea",
+    fontWeight: "600",
   },
   socialButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f9fafb',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f9fafb",
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: "#e5e7eb",
     borderRadius: 16,
     paddingVertical: 16,
     paddingHorizontal: 20,
@@ -505,53 +564,53 @@ const styles = StyleSheet.create({
   },
   socialIconContainer: {
     width: 24,
-    alignItems: 'center',
+    alignItems: "center",
   },
   socialButtonText: {
     flex: 1,
     fontSize: 16,
-    fontWeight: '500',
-    color: '#374151',
+    fontWeight: "500",
+    color: "#374151",
     marginLeft: 16,
   },
   dividerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginVertical: 24,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: "#e5e7eb",
   },
   dividerText: {
     paddingHorizontal: 16,
     fontSize: 14,
-    color: '#9ca3af',
-    fontWeight: '500',
+    color: "#9ca3af",
+    fontWeight: "500",
   },
   inputGroup: {
     marginBottom: 20,
   },
   inputLabel: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
+    fontWeight: "600",
+    color: "#374151",
     marginBottom: 8,
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f9fafb',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f9fafb",
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: "#e5e7eb",
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 16,
   },
   inputError: {
-    borderColor: '#ef4444',
-    backgroundColor: '#fef2f2',
+    borderColor: "#ef4444",
+    backgroundColor: "#fef2f2",
   },
   inputIcon: {
     marginRight: 12,
@@ -559,119 +618,119 @@ const styles = StyleSheet.create({
   textInput: {
     flex: 1,
     fontSize: 16,
-    color: '#1f2937',
+    color: "#1f2937",
   },
   eyeButton: {
     padding: 4,
   },
   errorText: {
-    color: '#ef4444',
+    color: "#ef4444",
     fontSize: 14,
     marginTop: 4,
     marginLeft: 4,
   },
   optionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 32,
   },
   checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   checkbox: {
     width: 20,
     height: 20,
     borderWidth: 2,
-    borderColor: '#d1d5db',
+    borderColor: "#d1d5db",
     borderRadius: 6,
     marginRight: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   checkboxChecked: {
-    backgroundColor: '#667eea',
-    borderColor: '#667eea',
+    backgroundColor: "#667eea",
+    borderColor: "#667eea",
   },
   checkboxText: {
     fontSize: 14,
-    color: '#6b7280',
+    color: "#6b7280",
   },
   forgotPasswordText: {
     fontSize: 14,
-    color: '#667eea',
-    fontWeight: '600',
+    color: "#667eea",
+    fontWeight: "600",
   },
   loginButton: {
     borderRadius: 16,
-    overflow: 'hidden',
+    overflow: "hidden",
     marginBottom: 24,
   },
   buttonDisabled: {
     opacity: 0.7,
   },
   buttonGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 18,
     paddingHorizontal: 24,
   },
   buttonText: {
-    color: 'white',
+    color: "white",
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     marginRight: 8,
   },
   buttonIcon: {
     marginLeft: 4,
   },
   formFooter: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   guestButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f0f4ff',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f0f4ff",
     borderWidth: 1,
-    borderColor: '#667eea',
+    borderColor: "#667eea",
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 20,
     marginBottom: 20,
-    width: '100%',
+    width: "100%",
   },
   guestButtonText: {
-    color: '#667eea',
+    color: "#667eea",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     marginLeft: 8,
   },
   footerText: {
     fontSize: 12,
-    color: '#9ca3af',
-    textAlign: 'center',
+    color: "#9ca3af",
+    textAlign: "center",
     lineHeight: 18,
   },
   specialGuestButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 6,
     marginTop: 16,
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderWidth: 1.5,
-    borderColor: '#115061',
+    borderColor: "#115061",
     borderRadius: 12,
-    width: '100%',
+    width: "100%",
   },
   specialGuestText: {
-    color: '#115061',
+    color: "#115061",
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });
 

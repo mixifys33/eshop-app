@@ -953,7 +953,6 @@ const UserHome = ({ navigation }) => {
             </View>
           )}
         </View>
-      </View>
     </View>
   );
 

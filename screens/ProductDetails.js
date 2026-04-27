@@ -1790,7 +1790,6 @@ Shop on EshopUG - Uganda's #1 Online Marketplace!
             </View>
           </View>
         </View>
-      </View>
 
       <ScrollView
         style={styles.scrollView}

@@ -10,6 +10,7 @@ import Toast from 'react-native-toast-message';
 import { ThemeProvider } from './context/ThemeContext';
 import { initPushNotifications } from './services/pushNotificationService';
 import * as Updates from 'expo-updates';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 // Import screens
 import SellerSignup from './screens/SellerSignup';
@@ -621,9 +622,10 @@ export default function App() {
   };
 
   return (
-    <ThemeProvider>
-      <>
-        {currentScreen === 'home' && <UserHome navigation={navigation} />}
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <>
+          {currentScreen === 'home' && <UserHome navigation={navigation} />}
       {currentScreen === 'Login' && <Login navigation={navigation} />}
       {currentScreen === 'Signup' && <Signup navigation={navigation} />}
       {currentScreen === 'UserForgotPassword' && <UserForgotPassword navigation={navigation} />}
@@ -719,7 +721,8 @@ export default function App() {
       </Modal>
       
       </>
-    </ThemeProvider>
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
 
